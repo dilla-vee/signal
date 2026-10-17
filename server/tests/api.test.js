@@ -201,4 +201,49 @@ describe('API Route Integration Tests', () => {
     assert.ok(['CONFIRMED', 'FLIPPED', 'CANCELLED'].includes(json.data.status));
     assert.ok(json.data.post_release_action);
   });
+
+  test('GET /api/performance/summary returns hit rate, profit factor and equity curve', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/performance/summary`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.ok(json.data.hitRatePct > 0);
+    assert.ok(json.data.profitFactor > 0);
+    assert.ok(Array.isArray(json.data.equityCurve));
+    assert.ok(Array.isArray(json.data.pairStats));
+  });
+
+  test('GET /api/performance/agent-accuracy returns agent ranking and suggested weights', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/performance/agent-accuracy`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.ok(Array.isArray(json.data));
+    assert.equal(json.data.length, 8);
+    assert.ok(json.data[0].suggested_weight > 0);
+  });
+
+  test('POST /api/backtest/run executes historical backtest simulation and returns trade log', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/backtest/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pair: 'XAUUSD', eventType: 'CPI', accountBalance: 10000 })
+    });
+
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.ok(json.data.totalTrades > 0);
+    assert.ok(json.data.winRatePct > 0);
+    assert.ok(Array.isArray(json.data.tradeLog));
+  });
+
+  test('GET /api/backtest/presets returns strategy preset configurations', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/backtest/presets`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.ok(Array.isArray(json.data));
+    assert.ok(json.data.length >= 3);
+  });
 });

@@ -4,6 +4,7 @@ import { Badge } from '../components/common/Badge';
 
 export function SignalsPage({ signals = [] }) {
   const [filterPair, setFilterPair] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState('ALL');
   const [search, setSearch] = useState('');
 
   const sampleHistory = [
@@ -20,6 +21,8 @@ export function SignalsPage({ signals = [] }) {
       take_profit_2: 2660.00,
       risk_reward_ratio: 2.14,
       position_size_lots: 0.70,
+      r_multiple: 2.14,
+      pnl_usd: 214.00,
       status: 'CONFIRMED',
       created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
       events: { event_name: 'US Non-Farm Payrolls', event_type: 'NFP', currency: 'USD' }
@@ -36,6 +39,8 @@ export function SignalsPage({ signals = [] }) {
       take_profit_2: 148.20,
       risk_reward_ratio: 2.00,
       position_size_lots: 0.40,
+      r_multiple: 2.00,
+      pnl_usd: 200.00,
       status: 'CONFIRMED',
       created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
       events: { event_name: 'US CPI Headline YoY', event_type: 'CPI', currency: 'USD' }
@@ -51,7 +56,9 @@ export function SignalsPage({ signals = [] }) {
       take_profit_1: null,
       risk_reward_ratio: null,
       position_size_lots: null,
-      status: 'EXPIRED',
+      r_multiple: 0.0,
+      pnl_usd: 0.0,
+      status: 'CANCELLED',
       created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
       events: { event_name: 'ECB Monetary Policy Statement', event_type: 'ECB', currency: 'EUR' }
     }
@@ -59,7 +66,13 @@ export function SignalsPage({ signals = [] }) {
 
   const filtered = sampleHistory.filter(s => {
     if (filterPair !== 'ALL' && s.pair !== filterPair) return false;
-    if (search && !s.events?.event_name?.toLowerCase().includes(search.toLowerCase()) && !s.pair.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterStatus !== 'ALL' && s.status !== filterStatus) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const matchEvent = (s.events?.event_name || s.event_name || '').toLowerCase().includes(q);
+      const matchPair = s.pair.toLowerCase().includes(q);
+      if (!matchEvent && !matchPair) return false;
+    }
     return true;
   });
 
@@ -98,6 +111,18 @@ export function SignalsPage({ signals = [] }) {
               </button>
             ))}
           </div>
+
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded border border-terminal-border">
+            {['ALL', 'ACTIVE', 'CONFIRMED', 'FLIPPED', 'CANCELLED'].map(st => (
+              <button
+                key={st}
+                onClick={() => setFilterStatus(st)}
+                className={`px-2 py-0.5 rounded text-[11px] ${filterStatus === st ? 'bg-terminal-gold text-black font-bold' : 'text-slate-400 hover:text-white'}`}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -115,6 +140,7 @@ export function SignalsPage({ signals = [] }) {
               <th className="py-2.5 px-3">TP1</th>
               <th className="py-2.5 px-3">R:R</th>
               <th className="py-2.5 px-3">Conf %</th>
+              <th className="py-2.5 px-3">PnL ($)</th>
               <th className="py-2.5 px-4 text-right">Status</th>
             </tr>
           </thead>
@@ -122,6 +148,7 @@ export function SignalsPage({ signals = [] }) {
             {filtered.map((sig, idx) => {
               const isBuy = sig.direction === 'BUY';
               const isSell = sig.direction === 'SELL';
+              const pnl = sig.pnl_usd !== undefined ? sig.pnl_usd : (sig.status === 'CONFIRMED' ? (sig.risk_reward_ratio || 2.0) * 100 : 0);
               return (
                 <tr key={idx} className="hover:bg-terminal-surfaceHover transition-colors">
                   <td className="py-3 px-4 text-slate-400 tabular-nums">
@@ -136,7 +163,7 @@ export function SignalsPage({ signals = [] }) {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-slate-200">
-                    {sig.events?.event_name || 'Macro Release'}
+                    {sig.events?.event_name || sig.event_name || 'Macro Release'}
                   </td>
                   <td className="py-3 px-3 text-white tabular-nums font-semibold">
                     {sig.suggested_entry ? sig.suggested_entry.toFixed(2) : '-'}
@@ -151,10 +178,20 @@ export function SignalsPage({ signals = [] }) {
                     {sig.risk_reward_ratio ? `1:${sig.risk_reward_ratio}` : '-'}
                   </td>
                   <td className="py-3 px-3 text-slate-300 tabular-nums">{sig.confidence_pct}%</td>
+                  <td className="py-3 px-3 font-bold tabular-nums">
+                    {sig.status === 'CONFIRMED' ? (
+                      <span className="text-terminal-green">+{pnl > 0 ? `$${pnl.toFixed(0)}` : '+$200'}</span>
+                    ) : sig.status === 'FLIPPED' ? (
+                      <span className="text-terminal-red">-$100</span>
+                    ) : (
+                      <span className="text-slate-500">$0</span>
+                    )}
+                  </td>
                   <td className="py-3 px-4 text-right">
                     <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
                       sig.status === 'CONFIRMED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-700' :
                       sig.status === 'ACTIVE' ? 'bg-cyan-950 text-terminal-cyan border border-cyan-700' :
+                      sig.status === 'FLIPPED' ? 'bg-rose-950 text-rose-400 border border-rose-700' :
                       'bg-slate-800 text-slate-400 border border-slate-700'
                     }`}>
                       {sig.status}
