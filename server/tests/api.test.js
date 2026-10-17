@@ -129,4 +129,27 @@ describe('API Route Integration Tests', () => {
     assert.ok(json.data.cot_gold_net !== undefined);
     assert.ok(json.data.technical_summary !== undefined);
   });
+
+  test('GET /api/agents returns analytical agent team', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/agents`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.equal(json.data.length, 8);
+    assert.equal(json.data[0].name, 'Fundamentals Agent');
+  });
+
+  test('POST /api/agents/run runs AI analysis on pair and returns outputs and consensus', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/agents/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pair: 'XAUUSD' })
+    });
+
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.equal(json.data.outputs.length, 8);
+    assert.ok(json.data.consensusSummary.prevailingBias);
+  });
 });

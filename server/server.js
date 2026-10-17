@@ -9,6 +9,7 @@ import signalsRoutes from './routes/signals.js';
 import pricesRoutes from './routes/prices.js';
 import reactionsRoutes from './routes/reactions.js';
 import snapshotsRoutes from './routes/snapshots.js';
+import agentsRoutes from './routes/agents.js';
 import { startCalendarCron } from './jobs/calendarCron.js';
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api/signals', signalsRoutes);
 app.use('/api/prices', pricesRoutes);
 app.use('/api/reactions', reactionsRoutes);
 app.use('/api/snapshots', snapshotsRoutes);
+app.use('/api/agents', agentsRoutes);
 
 // Root Welcome Endpoint
 app.get('/', (req, res) => {
