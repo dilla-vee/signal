@@ -152,4 +152,53 @@ describe('API Route Integration Tests', () => {
     assert.equal(json.data.outputs.length, 8);
     assert.ok(json.data.consensusSummary.prevailingBias);
   });
+
+  test('POST /api/signals/generate triggers 11-agent pipeline and returns pre-news signal and scenarios', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/signals/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pair: 'XAUUSD', eventId: 'mock-event-cpi' })
+    });
+
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.ok(json.data.signalId);
+    assert.ok(['BUY', 'SELL', 'NO_TRADE'].includes(json.data.signal.direction));
+    assert.equal(json.data.scenarioPlaybook.scenarios.length, 5);
+    assert.ok(json.data.devilsAdvocate.objection_list.length > 0);
+  });
+
+  test('GET /api/signals/event/:eventId returns 5-point scenario matrix', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/signals/event/mock-event-cpi?pair=XAUUSD`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.equal(json.data.scenarios.length, 5);
+    const probSum = json.data.scenarios.reduce((sum, s) => sum + s.probability_pct, 0);
+    assert.equal(probSum, 100);
+  });
+
+  test('POST /api/signals/:id/post-release re-evaluates signal with actual outcome', async () => {
+    // Generate a fresh signal first
+    const genRes = await fetch(`http://localhost:${PORT}/api/signals/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pair: 'XAUUSD' })
+    });
+    const genJson = await genRes.json();
+    const sigId = genJson.data.signalId;
+
+    const res = await fetch(`http://localhost:${PORT}/api/signals/${sigId}/post-release`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actualValue: '2.8%', eventForecast: '3.1%', currentPrice: 2670.00 })
+    });
+
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.ok(['CONFIRMED', 'FLIPPED', 'CANCELLED'].includes(json.data.status));
+    assert.ok(json.data.post_release_action);
+  });
 });

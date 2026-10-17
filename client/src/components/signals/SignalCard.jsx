@@ -36,13 +36,32 @@ export function SignalCard({ signal, onSelectEvent }) {
             <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
               {signal.confidence_pct}% CONFIDENCE
             </span>
+            {signal.status && signal.status !== 'ACTIVE' && (
+              <span className={`text-xs font-mono px-2 py-0.5 rounded font-bold uppercase ${
+                signal.status === 'CONFIRMED'
+                  ? 'bg-emerald-950 text-terminal-green border border-emerald-500/50'
+                  : signal.status === 'FLIPPED'
+                  ? 'bg-rose-950 text-terminal-red border border-rose-500/50'
+                  : 'bg-slate-800 text-slate-400 border border-slate-600'
+              }`}>
+                ● {signal.status}
+              </span>
+            )}
           </div>
 
           <div className="text-xs text-slate-400 font-mono mt-1 flex items-center gap-2">
             <span>Linked Event:</span>
-            <span className="text-terminal-cyan font-medium">{signal.events?.event_name || 'US Macro Release'}</span>
+            <span className="text-terminal-cyan font-medium">{signal.events?.event_name || signal.event_name || 'US Macro Release'}</span>
             <span className="text-slate-600">|</span>
-            <span className="text-slate-400">{signal.events?.currency}</span>
+            <span className="text-slate-400">{signal.events?.currency || 'USD'}</span>
+            {onSelectEvent && (
+              <button
+                onClick={() => onSelectEvent(signal.events || { id: signal.event_id, event_name: signal.event_name, release_time: signal.release_time })}
+                className="text-[11px] text-terminal-cyan underline hover:text-white ml-2"
+              >
+                View Playbook & Scenarios →
+              </button>
+            )}
           </div>
         </div>
 
@@ -56,6 +75,11 @@ export function SignalCard({ signal, onSelectEvent }) {
           <div className="text-[10px] text-amber-400/90 font-medium tracking-wide uppercase mt-0.5">
             {signal.timing === 'post_news_confirmation' ? 'Wait for Post-News Retest' : 'Pre-News Limit Entry'}
           </div>
+          {signal.post_release_action && (
+            <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mt-1">
+              {signal.post_release_action.replace(/_/g, ' ')}
+            </div>
+          )}
         </div>
       </div>
 

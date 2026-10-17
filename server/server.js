@@ -53,7 +53,8 @@ app.use(errorHandler);
 
 // Export app for tests and conditional listener
 let server = null;
-if (process.env.NODE_ENV !== 'test' && !process.env.DISABLE_AUTO_START) {
+const isDirectRun = process.argv[1] && (process.argv[1].endsWith('server.js') || process.argv[1].endsWith('server'));
+if (isDirectRun && process.env.NODE_ENV !== 'test' && !process.env.DISABLE_AUTO_START) {
   server = app.listen(config.port, () => {
     logger.info(`Macro Signal Server running on port ${config.port} [${config.nodeEnv}]`);
     startCalendarCron();

@@ -7,11 +7,16 @@ import { technicalAgent } from '../agents/technicalAgent.js';
 import { positioningAgent } from '../agents/positioningAgent.js';
 import { geopoliticalAgent } from '../agents/geopoliticalAgent.js';
 import { historicalReactionAgent } from '../agents/historicalReactionAgent.js';
+import { scenarioBuilderAgent } from '../agents/scenarioBuilderAgent.js';
+import { devilsAdvocateAgent } from '../agents/devilsAdvocateAgent.js';
+import { judgeAgent } from '../agents/judgeAgent.js';
 import { buildMarketSnapshot } from './marketSnapshotService.js';
 import { calendarService } from './calendarService.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { logger } from '../utils/logger.js';
-import { logApiCall } from './apiLoggerService.js';
+import { localSignalStore } from './postReleaseService.js';
+
+export const localScenarioStore = new Map();
 
 export const ANALYTICAL_AGENTS = [
   fundamentalsAgent,
@@ -22,6 +27,13 @@ export const ANALYTICAL_AGENTS = [
   positioningAgent,
   geopoliticalAgent,
   historicalReactionAgent
+];
+
+export const ALL_AGENTS = [
+  ...ANALYTICAL_AGENTS,
+  scenarioBuilderAgent,
+  devilsAdvocateAgent,
+  judgeAgent
 ];
 
 /**
@@ -180,4 +192,153 @@ export async function runAnalyticalAgents({ eventId, pair = 'XAUUSD' } = {}) {
     logger.error('Fatal error in runAnalyticalAgents', { error: err.message });
     throw err;
   }
+}
+
+/**
+ * Full 11-Agent Intelligence Pipeline:
+ * Phase A: Specialized Analytical Agents 1-8 (Parallel)
+ * Phase B: Scenario Builder (Agent 9) & Devil's Advocate (Agent 10) (Parallel)
+ * Phase C: Judge / Synthesizer (Agent 11) (Adjudication & Trade Parameters)
+ * Phase D: Persistence to Supabase (and local store fallback)
+ */
+export async function runFullSignalPipeline({ eventId, pair = 'XAUUSD', userRules = {} } = {}) {
+  const startTime = Date.now();
+  const normalizedPair = pair.toUpperCase();
+
+  logger.info(`[Pipeline] Launching complete 11-agent intelligence pipeline for ${normalizedPair}...`);
+
+  // 1. Run Phase A: 8 Analytical Agents
+  const phaseAResult = await runAnalyticalAgents({ eventId, pair: normalizedPair });
+  const { runId, event, snapshot, outputs, consensusSummary } = phaseAResult;
+
+  // 2. Run Phase B: Scenario Builder (Agent 9) & Devil's Advocate (Agent 10) in parallel
+  logger.info(`[Pipeline] Phase B: Dispatching Scenario Builder & Devil's Advocate...`);
+  const [scenarioResult, devAdvocateResult] = await Promise.all([
+    scenarioBuilderAgent.buildPlaybook(snapshot, event, outputs, consensusSummary),
+    devilsAdvocateAgent.interrogate(snapshot, event, outputs, consensusSummary)
+  ]);
+
+  // 3. Run Phase C: Judge / Synthesizer Agent (Agent 11)
+  logger.info(`[Pipeline] Phase C: Synthesizing final verdict with Judge Agent...`);
+  const judgeVerdict = await judgeAgent.adjudicate({
+    marketSnapshot: snapshot,
+    event,
+    analyticalOutputs: outputs,
+    consensusSummary,
+    scenarioPlaybook: scenarioResult,
+    devilsAdvocate: devAdvocateResult,
+    userRules
+  });
+
+  const signalId = crypto.randomUUID();
+
+  // 4. Construct Full Signal Record
+  const finalizedSignal = {
+    id: signalId,
+    event_id: event.id,
+    pair: normalizedPair,
+    user_id: userRules.user_id || null,
+    run_id: runId,
+    direction: judgeVerdict.direction,
+    confidence_pct: judgeVerdict.confidence_pct,
+    timing: judgeVerdict.timing,
+    suggested_entry: judgeVerdict.suggested_entry,
+    entry_zone_min: judgeVerdict.entry_zone_min,
+    entry_zone_max: judgeVerdict.entry_zone_max,
+    stop_loss: judgeVerdict.stop_loss,
+    take_profit_1: judgeVerdict.take_profit_1,
+    take_profit_2: judgeVerdict.take_profit_2,
+    risk_reward_ratio: judgeVerdict.risk_reward_ratio,
+    position_size_lots: judgeVerdict.position_size_lots,
+    key_drivers: judgeVerdict.key_drivers,
+    key_risks: judgeVerdict.key_risks,
+    dev_advocate_objections: judgeVerdict.devils_advocate_objections,
+    agreed_agents: judgeVerdict.agreed_agents,
+    disagreed_agents: judgeVerdict.disagreed_agents,
+    reasoning_synthesis: judgeVerdict.reasoning_synthesis,
+    status: judgeVerdict.status || 'ACTIVE',
+    event_name: event.event_name,
+    release_time: event.release_time,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  // 5. Store Scenarios and Signal
+  localSignalStore.set(signalId, finalizedSignal);
+  localScenarioStore.set(event.id, {
+    eventId: event.id,
+    pair: normalizedPair,
+    scenarios: scenarioResult.scenarios,
+    expected_value_summary: scenarioResult.expected_value_summary
+  });
+
+  if (supabaseAdmin) {
+    try {
+      // Insert scenarios
+      for (const sc of scenarioResult.scenarios) {
+        await supabaseAdmin.from('scenarios').insert({
+          id: crypto.randomUUID(),
+          event_id: event.id,
+          pair: normalizedPair,
+          scenario_key: sc.scenario_key,
+          scenario_name: sc.scenario_name,
+          condition_description: sc.condition_description,
+          probability_pct: sc.probability_pct,
+          expected_first_reaction: sc.expected_first_reaction,
+          expected_follow_through: sc.expected_follow_through,
+          conditional_action: sc.conditional_action,
+          invalidation_level: sc.invalidation_level,
+          risk_notes: sc.risk_notes,
+          expected_value_rating: sc.expected_value_rating
+        });
+      }
+
+      // Insert finalized signal
+      await supabaseAdmin.from('signals').insert({
+        id: signalId,
+        event_id: event.id,
+        pair: normalizedPair,
+        user_id: userRules.user_id || null,
+        run_id: runId,
+        direction: judgeVerdict.direction,
+        confidence_pct: judgeVerdict.confidence_pct,
+        timing: judgeVerdict.timing,
+        suggested_entry: judgeVerdict.suggested_entry,
+        entry_zone_min: judgeVerdict.entry_zone_min,
+        entry_zone_max: judgeVerdict.entry_zone_max,
+        stop_loss: judgeVerdict.stop_loss,
+        take_profit_1: judgeVerdict.take_profit_1,
+        take_profit_2: judgeVerdict.take_profit_2,
+        risk_reward_ratio: judgeVerdict.risk_reward_ratio,
+        position_size_lots: judgeVerdict.position_size_lots,
+        key_drivers: judgeVerdict.key_drivers,
+        key_risks: judgeVerdict.key_risks,
+        dev_advocate_objections: judgeVerdict.devils_advocate_objections,
+        agreed_agents: judgeVerdict.agreed_agents,
+        disagreed_agents: judgeVerdict.disagreed_agents,
+        status: 'ACTIVE'
+      });
+    } catch (dbErr) {
+      logger.warn(`Could not persist pipeline results to Supabase`, { error: dbErr.message });
+    }
+  }
+
+  const totalTokens = (phaseAResult.totalTokens || 0) + (scenarioResult.tokens_used || 0) + (devAdvocateResult.tokens_used || 0) + (judgeVerdict.tokens_used || 0);
+
+  logger.info(`[Pipeline] Pipeline finished in ${Date.now() - startTime}ms. Signal Direction: ${finalizedSignal.direction} (${finalizedSignal.confidence_pct}%)`);
+
+  return {
+    runId,
+    signalId,
+    pair: normalizedPair,
+    event,
+    snapshot,
+    analyticalOutputs: outputs,
+    consensusSummary,
+    scenarioPlaybook: scenarioResult,
+    devilsAdvocate: devAdvocateResult,
+    signal: finalizedSignal,
+    totalTokens,
+    latencyMs: Date.now() - startTime
+  };
 }
