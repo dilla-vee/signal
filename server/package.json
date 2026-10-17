@@ -1,0 +1,25 @@
+{
+  "name": "macro-signal-server",
+  "version": "1.0.0",
+  "description": "Backend engine for Macro News Intelligence & Signal Platform (XAUUSD & JPY pairs)",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
+    "@supabase/supabase-js": "^2.48.1",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.6.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "zod": "^3.24.1"
+  }
+}
