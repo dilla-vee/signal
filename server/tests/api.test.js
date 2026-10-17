@@ -246,4 +246,38 @@ describe('API Route Integration Tests', () => {
     assert.ok(Array.isArray(json.data));
     assert.ok(json.data.length >= 3);
   });
+
+  test('GET /api/risk/windows returns no-trade windows and countdown', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/risk/windows?preMinutes=15&postMinutes=15`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.ok(Array.isArray(json.data));
+    assert.ok(json.data.length > 0);
+    assert.ok(json.data[0].no_trade_start_utc);
+  });
+
+  test('GET /api/risk/spread-matrix returns pairs and spike pips', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/risk/spread-matrix`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.equal(json.data.length, 5);
+  });
+
+  test('GET /api/risk/mt5-export returns CSV formatted filter', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/risk/mt5-export?format=csv`);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type'), 'text/csv; charset=utf-8');
+    const text = await res.text();
+    assert.ok(text.startsWith('event_id,event_name,currency,impact'));
+  });
+
+  test('GET /api/risk/mt5-code-snippet returns MQL5 sample function', async () => {
+    const res = await fetch(`http://localhost:${PORT}/api/risk/mt5-code-snippet`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.success, true);
+    assert.ok(json.data.code.includes('IsNewsLockdownActive'));
+  });
 });

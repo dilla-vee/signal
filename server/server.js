@@ -12,6 +12,7 @@ import snapshotsRoutes from './routes/snapshots.js';
 import agentsRoutes from './routes/agents.js';
 import performanceRoutes from './routes/performance.js';
 import backtestRoutes from './routes/backtest.js';
+import riskRoutes from './routes/risk.js';
 import { startCalendarCron } from './jobs/calendarCron.js';
 
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/snapshots', snapshotsRoutes);
 app.use('/api/agents', agentsRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/backtest', backtestRoutes);
+app.use('/api/risk', riskRoutes);
 
 // Root Welcome Endpoint
 app.get('/', (req, res) => {

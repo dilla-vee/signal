@@ -4,9 +4,24 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { logger } from '../utils/logger.js';
 import { logApiCall } from './apiLoggerService.js';
 
-export async function buildMarketSnapshot({ eventId = null, pair = 'XAUUSD' } = {}) {
+// Cost control: Cache snapshots for 5 minutes (300,000ms)
+const snapshotCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+export async function buildMarketSnapshot({ eventId = null, pair = 'XAUUSD', forceRefresh = false } = {}) {
+  const normalizedPair = pair.toUpperCase();
+  const cacheKey = `${normalizedPair}_${eventId || 'none'}`;
+
+  if (!forceRefresh && snapshotCache.has(cacheKey)) {
+    const cached = snapshotCache.get(cacheKey);
+    if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      logger.debug(`[Market Snapshot] Returning cached snapshot for ${cacheKey}`);
+      return cached.data;
+    }
+  }
+
   const startTime = Date.now();
-  logger.info(`Building point-in-time Market Snapshot for ${pair} (Event: ${eventId || 'None'})...`);
+  logger.info(`Building point-in-time Market Snapshot for ${normalizedPair} (Event: ${eventId || 'None'})...`);
 
   try {
     // 1. Fetch cross-asset rates, yields, sentiment, and COT
@@ -53,10 +68,12 @@ export async function buildMarketSnapshot({ eventId = null, pair = 'XAUUSD' } = 
           latencyMs: Date.now() - startTime,
           success: true
         });
+        snapshotCache.set(cacheKey, { timestamp: Date.now(), data });
         return data;
       }
     }
 
+    snapshotCache.set(cacheKey, { timestamp: Date.now(), data: snapshotRecord });
     return snapshotRecord;
   } catch (err) {
     logger.error('Failed to build market snapshot', { pair, eventId, error: err.message });
