@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Layers, Shield, DollarSign, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Layers, Shield, DollarSign, Activity, Upload, RefreshCw } from 'lucide-react';
 import { SignalCard } from '../components/signals/SignalCard';
+import { MarketSnapshotCard } from '../components/snapshots/MarketSnapshotCard';
+import { ReactionStatsTable } from '../components/reactions/ReactionStatsTable';
+import { PriceImportModal } from '../components/prices/PriceImportModal';
 
 export function PairViewPage({ signals = [] }) {
   const [selectedPair, setSelectedPair] = useState('XAUUSD');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const pairsInfo = {
     XAUUSD: {
@@ -90,14 +95,14 @@ export function PairViewPage({ signals = [] }) {
 
   return (
     <div className="space-y-6">
-      {/* Pair Switcher Bar */}
+      {/* Pair Switcher Bar & MT5 CSV Import Button */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-terminal-surface border border-terminal-border rounded-xl shadow-lg">
         <div>
           <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Active Macro Focus Pair</div>
           <div className="text-lg font-mono font-bold text-white mt-0.5">{selectedPair} — {currentInfo.name}</div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {Object.keys(pairsInfo).map((p) => (
             <button
               key={p}
@@ -111,6 +116,14 @@ export function PairViewPage({ signals = [] }) {
               {p}
             </button>
           ))}
+
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="ml-2 px-3 py-1.5 rounded text-xs font-mono font-bold bg-slate-800 hover:bg-slate-700 text-terminal-cyan border border-cyan-500/40 flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Import MT5 CSV</span>
+          </button>
         </div>
       </div>
 
@@ -142,6 +155,12 @@ export function PairViewPage({ signals = [] }) {
           <div className="text-[10px] text-amber-400/90 mt-0.5">News Spike: {currentInfo.spreadNewsSpike}</div>
         </div>
       </div>
+
+      {/* STRUCTURED POINT-IN-TIME MARKET SNAPSHOT (Phase 2) */}
+      <MarketSnapshotCard pair={selectedPair} key={`snapshot-${selectedPair}-${refreshKey}`} />
+
+      {/* EMPIRICAL HISTORICAL REACTIONS DATABASE (Phase 2) */}
+      <ReactionStatsTable pair={selectedPair} eventType="CPI" key={`reaction-${selectedPair}-${refreshKey}`} />
 
       {/* Macro Correlations & Cross-Asset Weights */}
       <div className="bg-terminal-surface border border-terminal-border rounded-xl p-5 shadow-lg">
@@ -182,6 +201,13 @@ export function PairViewPage({ signals = [] }) {
           </div>
         )}
       </div>
+
+      {/* MT5 CSV Import Modal */}
+      <PriceImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportSuccess={() => setRefreshKey(k => k + 1)}
+      />
     </div>
   );
 }

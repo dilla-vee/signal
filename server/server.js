@@ -6,6 +6,9 @@ import { errorHandler } from './middleware/errorHandler.js';
 import healthRoutes from './routes/health.js';
 import calendarRoutes from './routes/calendar.js';
 import signalsRoutes from './routes/signals.js';
+import pricesRoutes from './routes/prices.js';
+import reactionsRoutes from './routes/reactions.js';
+import snapshotsRoutes from './routes/snapshots.js';
 import { startCalendarCron } from './jobs/calendarCron.js';
 
 const app = express();
@@ -29,6 +32,9 @@ app.use((req, res, next) => {
 app.use('/api/health', healthRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/signals', signalsRoutes);
+app.use('/api/prices', pricesRoutes);
+app.use('/api/reactions', reactionsRoutes);
+app.use('/api/snapshots', snapshotsRoutes);
 
 // Root Welcome Endpoint
 app.get('/', (req, res) => {

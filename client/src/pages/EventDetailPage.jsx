@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Zap, ShieldAlert, CheckCircle, TrendingUp, TrendingDown, Clock, Percent } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { CountdownTimer } from '../components/common/CountdownTimer';
+import { MarketSnapshotCard } from '../components/snapshots/MarketSnapshotCard';
+import { ReactionStatsTable } from '../components/reactions/ReactionStatsTable';
 
 export function EventDetailPage({ event, onBack }) {
   const [activePair, setActivePair] = useState('XAUUSD');
@@ -146,6 +148,12 @@ export function EventDetailPage({ event, onBack }) {
           </div>
         </div>
       </div>
+
+      {/* Point-in-Time Market Snapshot Telemetry */}
+      <MarketSnapshotCard pair={activePair} eventId={event.id} />
+
+      {/* Empirical Historical Reaction Intelligence */}
+      <ReactionStatsTable pair={activePair} eventType={event.event_type || 'CPI'} />
 
       {/* 5-POINT PRE-NEWS SCENARIO PLAYBOOK MATRIX */}
       <div>
