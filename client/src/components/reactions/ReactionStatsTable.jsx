@@ -118,7 +118,7 @@ export function ReactionStatsTable({ eventType = 'CPI', pair = 'XAUUSD' }) {
 
       {/* Historical Releases Table */}
       <div className="overflow-x-auto border border-terminal-border rounded-lg">
-        <table className="w-full text-left border-collapse text-xs">
+        <table className="w-full min-w-[650px] text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-950 text-slate-400 text-[10px] uppercase border-b border-terminal-border">
               <th className="py-2 px-3">Past Release</th>

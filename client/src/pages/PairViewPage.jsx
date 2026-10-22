@@ -114,30 +114,32 @@ export function PairViewPage({ signals = [] }) {
   return (
     <div className="space-y-6">
       {/* Pair Switcher Bar & MT5 CSV Import Button */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-terminal-surface border border-terminal-border rounded-xl shadow-lg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 sm:p-4 bg-terminal-surface border border-terminal-border rounded-xl shadow-lg">
         <div>
           <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Active Macro Focus Pair</div>
-          <div className="text-lg font-mono font-bold text-white mt-0.5">{selectedPair} — {currentInfo.name}</div>
+          <div className="text-base sm:text-lg font-mono font-bold text-white mt-0.5">{selectedPair} — {currentInfo.name}</div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {Object.keys(pairsInfo).map((p) => (
-            <button
-              key={p}
-              onClick={() => setSelectedPair(p)}
-              className={`px-3 py-1.5 rounded text-xs font-mono transition-all ${
-                selectedPair === p
-                  ? 'bg-terminal-cyan text-black font-bold shadow-md'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-terminal-border'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 max-w-full">
+            {Object.keys(pairsInfo).map((p) => (
+              <button
+                key={p}
+                onClick={() => setSelectedPair(p)}
+                className={`px-2.5 sm:px-3 py-1.5 rounded text-xs font-mono transition-all shrink-0 ${
+                  selectedPair === p
+                    ? 'bg-terminal-cyan text-black font-bold shadow-md'
+                    : 'bg-slate-900 text-slate-400 hover:text-white border border-terminal-border'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
 
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="ml-2 px-3 py-1.5 rounded text-xs font-mono font-bold bg-slate-800 hover:bg-slate-700 text-terminal-cyan border border-cyan-500/40 flex items-center gap-1.5 transition-colors shadow-sm"
+            className="px-2.5 sm:px-3 py-1.5 rounded text-xs font-mono font-bold bg-slate-800 hover:bg-slate-700 text-terminal-cyan border border-cyan-500/40 flex items-center gap-1.5 transition-colors shadow-sm shrink-0"
           >
             <Upload className="w-3.5 h-3.5" />
             <span>Import MT5 CSV</span>

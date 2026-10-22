@@ -56,11 +56,11 @@ export function HealthPage() {
   return (
     <div className="space-y-6 font-mono text-xs">
       {/* 1. Header Banner */}
-      <div className="bg-terminal-surface border border-terminal-border rounded-xl p-5 shadow-lg flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-terminal-surface border border-terminal-border rounded-xl p-4 sm:p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
             <Activity className="w-4 h-4 text-terminal-cyan" />
-            <h1 className="text-base font-bold text-white uppercase tracking-wider">
+            <h1 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider">
               Background Schedulers & Data Feed Health Monitor
             </h1>
             {report?.status === 'OPERATIONAL' ? (
@@ -76,17 +76,17 @@ export function HealthPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 self-end md:self-auto">
           <div className="text-right">
             <div className="text-[10px] text-slate-500 uppercase">Server Uptime</div>
-            <div className="text-sm font-bold text-white tabular-nums">
+            <div className="text-xs sm:text-sm font-bold text-white tabular-nums">
               {formatUptime(report?.uptime_seconds)}
             </div>
           </div>
 
           <div className="text-right">
             <div className="text-[10px] text-slate-500 uppercase">Jobs Monitored</div>
-            <div className="text-sm font-bold text-terminal-cyan tabular-nums">
+            <div className="text-xs sm:text-sm font-bold text-terminal-cyan tabular-nums">
               {report?.healthy_jobs || 0} / {report?.total_jobs || 0} Healthy
             </div>
           </div>
@@ -176,8 +176,8 @@ export function HealthPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
+                <div className="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-800/80">
+                  <div className="text-left md:text-right">
                     <div className="text-[10px] text-slate-500 uppercase">Error Count</div>
                     <div className={`text-sm font-bold tabular-nums ${hasErrors ? 'text-rose-400' : 'text-slate-400'}`}>
                       {job.error_count}

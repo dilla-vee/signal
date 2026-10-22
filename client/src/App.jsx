@@ -22,6 +22,7 @@ export function App() {
   const [events, setEvents] = useState([]);
   const [signals, setSignals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Load calendar and signals from API
   async function loadData() {
@@ -99,18 +100,36 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-terminal-bg text-terminal-textBright flex flex-col">
+    <div className="min-h-screen bg-terminal-bg text-terminal-textBright flex flex-col relative overflow-x-hidden">
       {/* 1. Regulatory & Risk Disclaimer Banner */}
       <DisclaimerBanner />
 
       {/* 2. Top Terminal Navigation Header */}
-      <Header nextEvent={events[0]} />
+      <Header
+        nextEvent={events[0]}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
+
+      {/* Backdrop overlay for mobile/tablet slide-over drawer */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/70 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close menu backdrop"
+        />
+      )}
 
       {/* 3. Main Workspace: Sidebar + Scrollable View */}
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar currentTab={currentTab} setTab={setTab} />
+      <div className="flex flex-1 overflow-hidden relative">
+        <Sidebar
+          currentTab={currentTab}
+          setTab={setTab}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+        />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-terminal-bg">
+        <main className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-5 lg:p-6 bg-terminal-bg">
           {currentTab === 'home' && (
             <HomePage
               events={events}

@@ -42,13 +42,13 @@ export function CalendarTable({ events = [], onSelectEvent, onRefresh, loading }
   return (
     <div className="bg-terminal-surface border border-terminal-border rounded-lg overflow-hidden shadow-lg">
       {/* Table Header Controls */}
-      <div className="p-4 border-b border-terminal-border flex flex-wrap items-center justify-between gap-3 bg-slate-950/40">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="p-3 sm:p-4 border-b border-terminal-border flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-950/40">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-terminal-cyan" />
-            <span className="font-mono text-sm font-bold text-white tracking-wide">Macro Economic Release Schedule</span>
-            <span className="text-xs font-mono text-slate-400">
-              ({filteredEvents.length} events in window)
+            <Calendar className="w-4 h-4 text-terminal-cyan shrink-0" />
+            <span className="font-mono text-xs sm:text-sm font-bold text-white tracking-wide">Macro Economic Release Schedule</span>
+            <span className="text-[11px] font-mono text-slate-400">
+              ({filteredEvents.length} events)
             </span>
           </div>
 
@@ -65,10 +65,10 @@ export function CalendarTable({ events = [], onSelectEvent, onRefresh, loading }
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-3 text-xs font-mono">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-mono">
           {/* Currency Filter */}
           <div className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded border border-terminal-border">
-            <span className="text-slate-500">CURRENCY:</span>
+            <span className="text-slate-500 text-[10px]">CURRENCY:</span>
             {['ALL', 'USD', 'JPY'].map((c) => (
               <button
                 key={c}
@@ -86,7 +86,7 @@ export function CalendarTable({ events = [], onSelectEvent, onRefresh, loading }
 
           {/* Impact Filter */}
           <div className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded border border-terminal-border">
-            <span className="text-slate-500">IMPACT:</span>
+            <span className="text-slate-500 text-[10px]">IMPACT:</span>
             {['HIGH', 'ALL'].map((imp) => (
               <button
                 key={imp}
@@ -106,7 +106,7 @@ export function CalendarTable({ events = [], onSelectEvent, onRefresh, loading }
           <button
             onClick={onRefresh}
             disabled={loading}
-            className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-terminal-cyan transition-colors"
+            className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-terminal-cyan transition-colors ml-auto sm:ml-0"
             title="Refresh Economic Calendar"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-terminal-cyan' : ''}`} />
@@ -115,8 +115,8 @@ export function CalendarTable({ events = [], onSelectEvent, onRefresh, loading }
       </div>
 
       {/* Table Data */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse text-xs font-mono">
+      <div className="overflow-x-auto w-full">
+        <table className="w-full min-w-[760px] text-left border-collapse text-xs font-mono">
           <thead>
             <tr className="border-b border-terminal-border bg-slate-950/80 text-slate-400 text-[11px] uppercase tracking-wider">
               <th className="py-2.5 px-4">Release Time ({profile.timezone ? profile.timezone.split('/')[1] : 'Local'})</th>

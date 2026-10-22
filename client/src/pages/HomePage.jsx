@@ -87,17 +87,17 @@ export function HomePage({ events = [], signals = [], onSelectEvent, onRefreshCa
             </div>
 
             {/* Countdown & Playbook Action */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-t md:border-t-0 md:border-l border-terminal-border pt-4 md:pt-0 md:pl-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 border-t md:border-t-0 md:border-l border-terminal-border pt-4 md:pt-0 md:pl-6 w-full md:w-auto">
               <div className="text-left font-mono">
                 <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Time Remaining</div>
-                <div className="text-lg">
+                <div className="text-base sm:text-lg">
                   <CountdownTimer targetTime={nextMajorEvent.release_time} />
                 </div>
               </div>
 
               <button
                 onClick={() => onSelectEvent && onSelectEvent(nextMajorEvent)}
-                className="px-4 py-2.5 rounded-lg text-xs font-mono font-bold bg-terminal-cyan text-black hover:bg-cyan-300 shadow-md transition-all flex items-center gap-2 shrink-0"
+                className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-lg text-xs font-mono font-bold bg-terminal-cyan text-black hover:bg-cyan-300 shadow-md transition-all flex items-center gap-2 shrink-0"
               >
                 <Zap className="w-4 h-4 fill-black" />
                 <span>Open Pre-News Playbook</span>
@@ -162,17 +162,17 @@ export function HomePage({ events = [], signals = [], onSelectEvent, onRefreshCa
 
       {/* 3. ACTIVE PRE-NEWS TRADING SIGNALS SECTION */}
       <div>
-        <div className="flex items-center justify-between mb-3 font-mono">
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-terminal-green" />
-            <h2 className="text-sm font-bold text-white tracking-wide uppercase">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 mb-3 font-mono">
+          <div className="flex flex-wrap items-center gap-2">
+            <Target className="w-4 h-4 text-terminal-green shrink-0" />
+            <h2 className="text-xs sm:text-sm font-bold text-white tracking-wide uppercase">
               Active Pre-News Decision Signals
             </h2>
-            <span className="text-xs text-slate-500 hidden sm:inline">
+            <span className="text-xs text-slate-500 hidden md:inline">
               (Synthesized by 11 AI Agents with explicit Entry, Stop Loss & Take Profits)
             </span>
           </div>
-          <div className="text-xs text-slate-400">
+          <div className="text-[11px] sm:text-xs text-slate-400">
             Paper Trading Mode
           </div>
         </div>

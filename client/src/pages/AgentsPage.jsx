@@ -146,13 +146,13 @@ export function AgentsPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded border border-terminal-border">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded border border-terminal-border overflow-x-auto max-w-full">
             {['XAUUSD', 'USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY'].map((p) => (
               <button
                 key={p}
                 onClick={() => setSelectedPair(p)}
-                className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
+                className={`px-2.5 py-1 text-xs font-mono rounded transition-colors shrink-0 ${
                   selectedPair === p
                     ? 'bg-terminal-cyan text-black font-bold'
                     : 'text-slate-400 hover:text-white'
@@ -166,7 +166,7 @@ export function AgentsPage() {
           <button
             onClick={handleRunAnalysis}
             disabled={runningAnalysis}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-terminal-cyan text-black font-mono font-bold text-xs hover:bg-cyan-300 transition-colors shadow-md disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-terminal-cyan text-black font-mono font-bold text-xs hover:bg-cyan-300 transition-colors shadow-md disabled:opacity-50 w-full sm:w-auto"
           >
             {runningAnalysis ? (
               <RefreshCw className="w-4 h-4 animate-spin text-black" />

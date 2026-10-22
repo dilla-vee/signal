@@ -239,7 +239,7 @@ export function RiskMt5Page({ events = [] }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {(spreadMatrix.length > 0 ? spreadMatrix : [
             { pair: 'XAUUSD', displayName: 'Gold (XAUUSD)', normalSpread: '$0.25 - $0.35', newsSpikeSpread: '$1.80 - $3.80', riskTier: 'EXTREME', maxAllowedSpread: '$2.50', advisory: 'Spread blowout of 8-12x. Retail stops hunted by widening.' },
             { pair: 'USDJPY', displayName: 'USD/JPY', normalSpread: '0.7 - 1.0 pips', newsSpikeSpread: '4.5 - 8.5 pips', riskTier: 'HIGH', maxAllowedSpread: '5.0 pips', advisory: 'Slippage on market orders. Limit orders recommended.' },

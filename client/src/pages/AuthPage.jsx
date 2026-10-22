@@ -37,7 +37,7 @@ export function AuthPage({ onLoginSuccess }) {
 
   return (
     <div className="min-h-screen bg-terminal-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-terminal-surface border border-terminal-border rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+      <div className="w-full max-w-md bg-terminal-surface border border-terminal-border rounded-2xl p-5 sm:p-8 shadow-2xl relative overflow-hidden">
         {/* Glow accent */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
 

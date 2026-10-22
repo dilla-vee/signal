@@ -24,12 +24,12 @@ export function SignalCard({ signal, onSelectEvent }) {
     : 'border-slate-700';
 
   return (
-    <div className={`bg-terminal-surface border ${borderColor} rounded-lg p-5 shadow-lg relative overflow-hidden transition-all hover:border-terminal-cyan/50`}>
+    <div className={`bg-terminal-surface border ${borderColor} rounded-lg p-4 sm:p-5 shadow-lg relative overflow-hidden transition-all hover:border-terminal-cyan/50`}>
       {/* Top Banner: Instrument & Direction */}
-      <div className="flex items-start justify-between pb-3 border-b border-terminal-border">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-terminal-border">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xl font-bold tracking-tight text-white">{signal.pair}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-lg sm:text-xl font-bold tracking-tight text-white">{signal.pair}</span>
             <Badge variant={isBuy ? 'buy' : isSell ? 'sell' : 'neutral'} size="md">
               {isBuy ? 'PRE-NEWS BUY' : isSell ? 'PRE-NEWS SELL' : 'NO TRADE'}
             </Badge>
@@ -49,7 +49,7 @@ export function SignalCard({ signal, onSelectEvent }) {
             )}
           </div>
 
-          <div className="text-xs text-slate-400 font-mono mt-1 flex items-center gap-2">
+          <div className="text-xs text-slate-400 font-mono mt-1 flex flex-wrap items-center gap-2">
             <span>Linked Event:</span>
             <span className="text-terminal-cyan font-medium">{signal.events?.event_name || signal.event_name || 'US Macro Release'}</span>
             <span className="text-slate-600">|</span>
@@ -57,7 +57,7 @@ export function SignalCard({ signal, onSelectEvent }) {
             {onSelectEvent && (
               <button
                 onClick={() => onSelectEvent(signal.events || { id: signal.event_id, event_name: signal.event_name, release_time: signal.release_time })}
-                className="text-[11px] text-terminal-cyan underline hover:text-white ml-2"
+                className="text-[11px] text-terminal-cyan underline hover:text-white"
               >
                 View Playbook & Scenarios →
               </button>
@@ -66,20 +66,22 @@ export function SignalCard({ signal, onSelectEvent }) {
         </div>
 
         {/* Direction Icon & Timing Mode */}
-        <div className="text-right font-mono">
-          <div className="flex items-center justify-end gap-1">
-            {isBuy && <ArrowUpRight className="w-7 h-7 text-terminal-green animate-bounce" />}
-            {isSell && <ArrowDownRight className="w-7 h-7 text-terminal-red animate-bounce" />}
-            {isNoTrade && <MinusCircle className="w-7 h-7 text-slate-400" />}
+        <div className="text-left sm:text-right font-mono flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-900">
+          <div className="flex items-center sm:justify-end gap-1">
+            {isBuy && <ArrowUpRight className="w-6 h-6 sm:w-7 sm:h-7 text-terminal-green animate-bounce" />}
+            {isSell && <ArrowDownRight className="w-6 h-6 sm:w-7 sm:h-7 text-terminal-red animate-bounce" />}
+            {isNoTrade && <MinusCircle className="w-6 h-6 sm:w-7 sm:h-7 text-slate-400" />}
           </div>
-          <div className="text-[10px] text-amber-400/90 font-medium tracking-wide uppercase mt-0.5">
-            {signal.timing === 'post_news_confirmation' ? 'Wait for Post-News Retest' : 'Pre-News Limit Entry'}
-          </div>
-          {signal.post_release_action && (
-            <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mt-1">
-              {signal.post_release_action.replace(/_/g, ' ')}
+          <div>
+            <div className="text-[10px] text-amber-400/90 font-medium tracking-wide uppercase">
+              {signal.timing === 'post_news_confirmation' ? 'Wait for Post-News Retest' : 'Pre-News Limit Entry'}
             </div>
-          )}
+            {signal.post_release_action && (
+              <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mt-0.5">
+                {signal.post_release_action.replace(/_/g, ' ')}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

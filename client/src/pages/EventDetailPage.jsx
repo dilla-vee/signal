@@ -205,7 +205,7 @@ export function EventDetailPage({ event, onBack }) {
   return (
     <div className="space-y-6">
       {/* Navigation & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-2 text-xs font-mono text-slate-400 hover:text-terminal-cyan transition-colors"
@@ -214,13 +214,13 @@ export function EventDetailPage({ event, onBack }) {
           <span>Back to Command Hub</span>
         </button>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-slate-400">SELECT PAIR:</span>
+        <div className="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full">
+          <span className="text-xs font-mono text-slate-400 shrink-0">PAIR:</span>
           {['XAUUSD', 'USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY'].map((p) => (
             <button
               key={p}
               onClick={() => setActivePair(p)}
-              className={`px-2.5 py-1 rounded text-xs font-mono transition-all ${
+              className={`px-2.5 py-1 rounded text-xs font-mono transition-all shrink-0 ${
                 activePair === p
                   ? 'bg-terminal-cyan text-black font-bold shadow-sm'
                   : 'bg-terminal-surface text-slate-400 hover:text-white border border-terminal-border'
@@ -233,30 +233,30 @@ export function EventDetailPage({ event, onBack }) {
       </div>
 
       {/* Event Details & Live AI Trigger Card */}
-      <div className="bg-terminal-surface border border-terminal-border rounded-xl p-5 shadow-lg">
+      <div className="bg-terminal-surface border border-terminal-border rounded-xl p-4 sm:p-5 shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-terminal-border">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <Badge variant="high">{event.impact_level || 'HIGH'} IMPACT</Badge>
               <span className="text-xs font-mono text-slate-400">{event.currency} Release</span>
               <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
                 Playbook for <strong className="text-white">{activePair}</strong>
               </span>
             </div>
-            <h1 className="text-xl md:text-2xl font-bold font-mono text-white">{event.event_name}</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold font-mono text-white">{event.event_name}</h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
             <button
               onClick={handleRunFullPipeline}
               disabled={loadingPlaybook}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-terminal-cyan text-black font-mono font-bold text-xs hover:bg-cyan-400 transition-all shadow-md disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-terminal-cyan text-black font-mono font-bold text-xs hover:bg-cyan-400 transition-all shadow-md disabled:opacity-50"
             >
               <Play className="w-4 h-4" />
               <span>{loadingPlaybook ? 'Synthesizing 11 Agents...' : 'RUN FULL AI PLAYBOOK'}</span>
             </button>
 
-            <div className="text-right font-mono text-xs">
+            <div className="text-left sm:text-right font-mono text-xs">
               <div className="text-[10px] text-slate-500 uppercase">Countdown to Release</div>
               <CountdownTimer targetTime={event.release_time} />
             </div>

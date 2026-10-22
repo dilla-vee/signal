@@ -209,10 +209,10 @@ export function PerformancePage() {
       </div>
 
       {/* 3. Paper Trading Equity Curve Chart */}
-      <div className="bg-terminal-surface border border-terminal-border rounded-xl p-5 shadow-lg">
+      <div className="bg-terminal-surface border border-terminal-border rounded-xl p-4 sm:p-5 shadow-lg min-w-0 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div className="font-mono">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+            <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">
               Cumulative Equity Curve ($10,000 Base)
             </h2>
             <div className="text-[10px] text-slate-400">
@@ -362,8 +362,8 @@ export function PerformancePage() {
           </span>
         </div>
 
-        <div className="overflow-x-auto mt-4 font-mono text-xs">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto mt-4 font-mono text-xs w-full">
+          <table className="w-full min-w-[650px] text-left border-collapse">
             <thead>
               <tr className="border-b border-terminal-border text-slate-400 text-[10px] uppercase">
                 <th className="py-2.5 px-3">Agent Name</th>
@@ -449,7 +449,7 @@ export function PerformancePage() {
         </div>
 
         {/* Backtest Parameters Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 my-4 font-mono text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 my-4 font-mono text-xs">
           <div>
             <label className="text-[10px] text-slate-400 uppercase block mb-1">Target Instrument</label>
             <select
@@ -528,7 +528,7 @@ export function PerformancePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
               <div className="p-3 bg-slate-950 rounded border border-terminal-border">
                 <div className="text-[10px] text-slate-500 uppercase">Simulated Win Rate</div>
                 <div className="text-xl font-bold text-terminal-green mt-1">{backtestResult.winRatePct}%</div>

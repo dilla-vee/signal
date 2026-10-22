@@ -114,7 +114,7 @@ export function MarketSnapshotCard({ pair = 'XAUUSD', eventId = null }) {
       </div>
 
       {/* Grid: 4 Pillars of Market Intelligence */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* 1. Rates & Yield Spreads */}
         <div className="p-3 bg-slate-950 rounded border border-terminal-border space-y-2">
           <div className="text-[10px] text-slate-500 uppercase font-bold flex items-center justify-between">

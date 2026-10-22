@@ -73,80 +73,82 @@ export function SignalsPage({ signals = [] }) {
       {/* Signals Table */}
       <div className="bg-terminal-surface border border-terminal-border rounded-xl overflow-hidden shadow-lg">
         {filtered.length > 0 ? (
-          <table className="w-full text-left border-collapse text-xs font-mono">
-            <thead>
-              <tr className="border-b border-terminal-border bg-slate-950/80 text-slate-400 text-[11px] uppercase tracking-wider">
-                <th className="py-2.5 px-4">Date</th>
-                <th className="py-2.5 px-3">Pair</th>
-                <th className="py-2.5 px-3">Direction</th>
-                <th className="py-2.5 px-4">Linked Macro Event</th>
-                <th className="py-2.5 px-3">Entry</th>
-                <th className="py-2.5 px-3">Stop Loss</th>
-                <th className="py-2.5 px-3">TP1</th>
-                <th className="py-2.5 px-3">R:R</th>
-                <th className="py-2.5 px-3">Conf %</th>
-                <th className="py-2.5 px-3">PnL ($)</th>
-                <th className="py-2.5 px-4 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-terminal-border">
-              {filtered.map((sig, idx) => {
-                const isBuy = sig.direction === 'BUY';
-                const isSell = sig.direction === 'SELL';
-                const pnl = sig.pnl_usd !== undefined ? sig.pnl_usd : (sig.status === 'CONFIRMED' ? (sig.risk_reward_ratio || 2.0) * 100 : 0);
-                return (
-                  <tr key={idx} className="hover:bg-terminal-surfaceHover transition-colors">
-                    <td className="py-3 px-4 text-slate-400 tabular-nums">
-                      {new Date(sig.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-3 font-bold text-white">{sig.pair}</td>
-                    <td className="py-3 px-3">
-                      <span className={`inline-flex items-center gap-1 font-bold ${isBuy ? 'text-terminal-green' : isSell ? 'text-terminal-red' : 'text-slate-400'}`}>
-                        {isBuy && <ArrowUpRight className="w-3.5 h-3.5" />}
-                        {isSell && <ArrowDownRight className="w-3.5 h-3.5" />}
-                        {sig.direction}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-200">
-                      {sig.events?.event_name || sig.event_name || 'Macro Release'}
-                    </td>
-                    <td className="py-3 px-3 text-white tabular-nums font-semibold">
-                      {sig.suggested_entry ? sig.suggested_entry.toFixed(2) : '-'}
-                    </td>
-                    <td className="py-3 px-3 text-rose-400 tabular-nums">
-                      {sig.stop_loss ? sig.stop_loss.toFixed(2) : '-'}
-                    </td>
-                    <td className="py-3 px-3 text-emerald-400 tabular-nums">
-                      {sig.take_profit_1 ? sig.take_profit_1.toFixed(2) : '-'}
-                    </td>
-                    <td className="py-3 px-3 text-terminal-cyan tabular-nums font-semibold">
-                      {sig.risk_reward_ratio ? `1:${sig.risk_reward_ratio}` : '-'}
-                    </td>
-                    <td className="py-3 px-3 text-slate-300 tabular-nums">{sig.confidence_pct}%</td>
-                    <td className="py-3 px-3 font-bold tabular-nums">
-                      {sig.status === 'CONFIRMED' ? (
-                        <span className="text-terminal-green">+{pnl > 0 ? `$${pnl.toFixed(0)}` : '+$200'}</span>
-                      ) : sig.status === 'FLIPPED' ? (
-                        <span className="text-terminal-red">-$100</span>
-                      ) : (
-                        <span className="text-slate-500">$0</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
-                        sig.status === 'CONFIRMED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-700' :
-                        sig.status === 'ACTIVE' ? 'bg-cyan-950 text-terminal-cyan border border-cyan-700' :
-                        sig.status === 'FLIPPED' ? 'bg-rose-950 text-rose-400 border border-rose-700' :
-                        'bg-slate-800 text-slate-400 border border-slate-700'
-                      }`}>
-                        {sig.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[780px] text-left border-collapse text-xs font-mono">
+              <thead>
+                <tr className="border-b border-terminal-border bg-slate-950/80 text-slate-400 text-[11px] uppercase tracking-wider">
+                  <th className="py-2.5 px-4">Date</th>
+                  <th className="py-2.5 px-3">Pair</th>
+                  <th className="py-2.5 px-3">Direction</th>
+                  <th className="py-2.5 px-4">Linked Macro Event</th>
+                  <th className="py-2.5 px-3">Entry</th>
+                  <th className="py-2.5 px-3">Stop Loss</th>
+                  <th className="py-2.5 px-3">TP1</th>
+                  <th className="py-2.5 px-3">R:R</th>
+                  <th className="py-2.5 px-3">Conf %</th>
+                  <th className="py-2.5 px-3">PnL ($)</th>
+                  <th className="py-2.5 px-4 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-terminal-border">
+                {filtered.map((sig, idx) => {
+                  const isBuy = sig.direction === 'BUY';
+                  const isSell = sig.direction === 'SELL';
+                  const pnl = sig.pnl_usd !== undefined ? sig.pnl_usd : (sig.status === 'CONFIRMED' ? (sig.risk_reward_ratio || 2.0) * 100 : 0);
+                  return (
+                    <tr key={idx} className="hover:bg-terminal-surfaceHover transition-colors">
+                      <td className="py-3 px-4 text-slate-400 tabular-nums">
+                        {new Date(sig.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-3 font-bold text-white">{sig.pair}</td>
+                      <td className="py-3 px-3">
+                        <span className={`inline-flex items-center gap-1 font-bold ${isBuy ? 'text-terminal-green' : isSell ? 'text-terminal-red' : 'text-slate-400'}`}>
+                          {isBuy && <ArrowUpRight className="w-3.5 h-3.5" />}
+                          {isSell && <ArrowDownRight className="w-3.5 h-3.5" />}
+                          {sig.direction}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-200">
+                        {sig.events?.event_name || sig.event_name || 'Macro Release'}
+                      </td>
+                      <td className="py-3 px-3 text-white tabular-nums font-semibold">
+                        {sig.suggested_entry ? sig.suggested_entry.toFixed(2) : '-'}
+                      </td>
+                      <td className="py-3 px-3 text-rose-400 tabular-nums">
+                        {sig.stop_loss ? sig.stop_loss.toFixed(2) : '-'}
+                      </td>
+                      <td className="py-3 px-3 text-emerald-400 tabular-nums">
+                        {sig.take_profit_1 ? sig.take_profit_1.toFixed(2) : '-'}
+                      </td>
+                      <td className="py-3 px-3 text-terminal-cyan tabular-nums font-semibold">
+                        {sig.risk_reward_ratio ? `1:${sig.risk_reward_ratio}` : '-'}
+                      </td>
+                      <td className="py-3 px-3 text-slate-300 tabular-nums">{sig.confidence_pct}%</td>
+                      <td className="py-3 px-3 font-bold tabular-nums">
+                        {sig.status === 'CONFIRMED' ? (
+                          <span className="text-terminal-green">+{pnl > 0 ? `$${pnl.toFixed(0)}` : '+$200'}</span>
+                        ) : sig.status === 'FLIPPED' ? (
+                          <span className="text-terminal-red">-$100</span>
+                        ) : (
+                          <span className="text-slate-500">$0</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                          sig.status === 'CONFIRMED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-700' :
+                          sig.status === 'ACTIVE' ? 'bg-cyan-950 text-terminal-cyan border border-cyan-700' :
+                          sig.status === 'FLIPPED' ? 'bg-rose-950 text-rose-400 border border-rose-700' :
+                          'bg-slate-800 text-slate-400 border border-slate-700'
+                        }`}>
+                          {sig.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="p-12 text-center font-mono space-y-2">
             <div className="text-slate-300 font-bold uppercase tracking-wider text-xs">
