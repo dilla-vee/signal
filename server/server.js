@@ -13,6 +13,7 @@ import agentsRoutes from './routes/agents.js';
 import performanceRoutes from './routes/performance.js';
 import backtestRoutes from './routes/backtest.js';
 import riskRoutes from './routes/risk.js';
+import authRoutes from './routes/auth.js';
 import { schedulerService } from './jobs/schedulerService.js';
 
 const app = express();
@@ -43,6 +44,7 @@ app.use('/api/agents', agentsRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/backtest', backtestRoutes);
 app.use('/api/risk', riskRoutes);
+app.use('/api/auth', authRoutes);
 
 // Root Welcome Endpoint
 app.get('/', (req, res) => {
