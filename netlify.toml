@@ -1,0 +1,15 @@
+# Netlify Monorepo Configuration for Macro Signal Client
+
+[build]
+  base = "client"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Single-Page Application (SPA) Client Routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
