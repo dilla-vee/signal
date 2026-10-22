@@ -1,24 +1,23 @@
-import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Layers, Shield, DollarSign, Activity, Upload, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Layers, Shield, DollarSign, Activity, Upload, RefreshCw, Clock, Database } from 'lucide-react';
 import { SignalCard } from '../components/signals/SignalCard';
 import { MarketSnapshotCard } from '../components/snapshots/MarketSnapshotCard';
 import { ReactionStatsTable } from '../components/reactions/ReactionStatsTable';
 import { PriceImportModal } from '../components/prices/PriceImportModal';
+import { Badge } from '../components/common/Badge';
+import { TimeAgo } from '../components/common/TimeAgo';
 
 export function PairViewPage({ signals = [] }) {
   const [selectedPair, setSelectedPair] = useState('XAUUSD');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [liveQuote, setLiveQuote] = useState(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
 
   const pairsInfo = {
     XAUUSD: {
       name: 'Spot Gold / US Dollar',
-      price: '2,658.40',
-      change: '+14.20 (+0.54%)',
-      positive: true,
       atr14: '28.50',
-      keySupport: '2,635.00',
-      keyResistance: '2,685.00',
       spreadTypical: '$0.25',
       spreadNewsSpike: '$1.80 - $3.20',
       correlations: [
@@ -29,12 +28,7 @@ export function PairViewPage({ signals = [] }) {
     },
     USDJPY: {
       name: 'US Dollar / Japanese Yen',
-      price: '149.85',
-      change: '-0.42 (-0.28%)',
-      positive: false,
       atr14: '1.20',
-      keySupport: '148.80',
-      keyResistance: '150.80',
       spreadTypical: '0.8 pips',
       spreadNewsSpike: '4.5 - 8.0 pips',
       correlations: [
@@ -45,12 +39,7 @@ export function PairViewPage({ signals = [] }) {
     },
     EURJPY: {
       name: 'Euro / Japanese Yen',
-      price: '163.20',
-      change: '-0.65 (-0.40%)',
-      positive: false,
       atr14: '1.35',
-      keySupport: '162.00',
-      keyResistance: '164.50',
       spreadTypical: '1.2 pips',
       spreadNewsSpike: '6.0 - 11.0 pips',
       correlations: [
@@ -60,12 +49,7 @@ export function PairViewPage({ signals = [] }) {
     },
     GBPJPY: {
       name: 'British Pound / Japanese Yen',
-      price: '195.40',
-      change: '-0.85 (-0.43%)',
-      positive: false,
       atr14: '1.80',
-      keySupport: '193.50',
-      keyResistance: '197.00',
       spreadTypical: '1.5 pips',
       spreadNewsSpike: '7.5 - 14.0 pips',
       correlations: [
@@ -75,12 +59,7 @@ export function PairViewPage({ signals = [] }) {
     },
     AUDJPY: {
       name: 'Australian Dollar / Japanese Yen',
-      price: '100.25',
-      change: '-0.30 (-0.30%)',
-      positive: false,
       atr14: '1.15',
-      keySupport: '99.00',
-      keyResistance: '101.50',
       spreadTypical: '1.4 pips',
       spreadNewsSpike: '6.5 - 12.0 pips',
       correlations: [
@@ -90,8 +69,47 @@ export function PairViewPage({ signals = [] }) {
     }
   };
 
+  async function fetchQuote(pair) {
+    setQuoteLoading(true);
+    try {
+      const res = await fetch(`/api/snapshots/quote/${pair}`);
+      if (res.ok) {
+        const json = await res.json();
+        setLiveQuote(json.data);
+      }
+    } catch (e) {
+      console.warn(`Could not load quote for ${pair}`, e);
+    } finally {
+      setQuoteLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchQuote(selectedPair);
+    const interval = setInterval(() => {
+      fetchQuote(selectedPair);
+    }, 15000); // 15s polling
+    return () => clearInterval(interval);
+  }, [selectedPair, refreshKey]);
+
   const currentInfo = pairsInfo[selectedPair];
   const pairSignals = signals.filter(s => s.pair === selectedPair);
+
+  // Live Price Calculation & Support/Resistance relative to live quote
+  const currentPriceNum = liveQuote?.price ?? null;
+  const displayPrice = currentPriceNum !== null
+    ? (selectedPair === 'XAUUSD'
+        ? `$${currentPriceNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : currentPriceNum.toFixed(3))
+    : (quoteLoading ? 'Fetching...' : 'Unavailable');
+
+  const displayChange = liveQuote ? `${liveQuote.change >= 0 ? '+' : ''}${liveQuote.change} (${liveQuote.changePct}%)` : '--';
+  const isPositive = liveQuote ? liveQuote.positive : true;
+  const isQuoteStale = liveQuote ? Boolean(liveQuote.is_stale) : true;
+  const isQuoteDemo = liveQuote ? Boolean(liveQuote.is_demo) : false;
+
+  const keySupport = selectedPair === 'XAUUSD' ? (currentPriceNum - 25.0).toFixed(2) : (currentPriceNum - 0.85).toFixed(2);
+  const keyResistance = selectedPair === 'XAUUSD' ? (currentPriceNum + 30.0).toFixed(2) : (currentPriceNum + 0.95).toFixed(2);
 
   return (
     <div className="space-y-6">
@@ -128,31 +146,55 @@ export function PairViewPage({ signals = [] }) {
       </div>
 
       {/* Realtime Metrics & Levels Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-        <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5">
-          <div className="text-[10px] text-slate-500 uppercase">Current Quote</div>
-          <div className="text-xl font-bold text-white tabular-nums mt-1">{currentInfo.price}</div>
-          <div className={`text-[10px] tabular-nums mt-0.5 ${currentInfo.positive ? 'text-terminal-green' : 'text-terminal-red'}`}>
-            {currentInfo.change}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between px-1 font-mono text-xs text-slate-400">
+          <div className="flex items-center gap-2 text-[11px]">
+            <TimeAgo
+              timestamp={liveQuote?.last_updated}
+              refreshWindowSec={15}
+              sourceName={liveQuote?.source_name || 'Yahoo Finance Live Market Feed'}
+              isStale={liveQuote?.is_stale}
+              isDemo={liveQuote?.is_demo}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchQuote(selectedPair)}
+              className="p-1 rounded bg-slate-900 border border-terminal-border text-slate-400 hover:text-terminal-cyan transition-colors"
+              title="Refresh Quote"
+            >
+              <RefreshCw className={`w-3 h-3 ${quoteLoading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
 
-        <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5">
-          <div className="text-[10px] text-slate-500 uppercase">14-Day ATR Volatility</div>
-          <div className="text-xl font-bold text-terminal-cyan tabular-nums mt-1">{currentInfo.atr14}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Average Daily Movement</div>
-        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+          <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5">
+            <div className="text-[10px] text-slate-500 uppercase">Current Quote</div>
+            <div className="text-xl font-bold text-white tabular-nums mt-1">{displayPrice}</div>
+            <div className={`text-[10px] tabular-nums mt-0.5 ${isPositive ? 'text-terminal-green' : 'text-terminal-red'}`}>
+              {displayChange}
+            </div>
+          </div>
 
-        <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5">
-          <div className="text-[10px] text-slate-500 uppercase">Key Support / Resistance</div>
-          <div className="text-xs font-bold text-emerald-400 tabular-nums mt-1">S: {currentInfo.keySupport}</div>
-          <div className="text-xs font-bold text-rose-400 tabular-nums mt-0.5">R: {currentInfo.keyResistance}</div>
-        </div>
+          <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5">
+            <div className="text-[10px] text-slate-500 uppercase">14-Day ATR Volatility</div>
+            <div className="text-xl font-bold text-terminal-cyan tabular-nums mt-1">{currentInfo.atr14}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Average Daily Movement</div>
+          </div>
 
-        <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5">
-          <div className="text-[10px] text-slate-500 uppercase">News Spread Model</div>
-          <div className="text-xs font-bold text-slate-300 tabular-nums mt-1">Normal: {currentInfo.spreadTypical}</div>
-          <div className="text-[10px] text-amber-400/90 mt-0.5">News Spike: {currentInfo.spreadNewsSpike}</div>
+          <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5">
+            <div className="text-[10px] text-slate-500 uppercase">Key Support / Resistance</div>
+            <div className="text-xs font-bold text-emerald-400 tabular-nums mt-1">S: {keySupport}</div>
+            <div className="text-xs font-bold text-rose-400 tabular-nums mt-0.5">R: {keyResistance}</div>
+          </div>
+
+          <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5">
+            <div className="text-[10px] text-slate-500 uppercase">News Spread Model</div>
+            <div className="text-xs font-bold text-slate-300 tabular-nums mt-1">Normal: {currentInfo.spreadTypical}</div>
+            <div className="text-[10px] text-amber-400/90 mt-0.5">News Spike: {currentInfo.spreadNewsSpike}</div>
+          </div>
         </div>
       </div>
 

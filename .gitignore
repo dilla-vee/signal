@@ -32,3 +32,4 @@ Thumbs.db
 # Superpowers temporary workspace
 .superpowers/
 .worktrees/
+supabase/.temp/

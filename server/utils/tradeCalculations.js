@@ -11,7 +11,9 @@ export function calculateTradeParameters({
   takeProfit1,
   takeProfit2 = null,
   accountBalance = 10000,
-  riskPct = 1.0
+  riskPct = 1.0,
+  usdjpyRate = null,
+  atr = null
 }) {
   const numEntry = Number(entryPrice);
   const numSL = Number(stopLoss);
@@ -35,20 +37,22 @@ export function calculateTradeParameters({
   // 3. Position Sizing
   // Gold (XAUUSD): 1 standard lot = 100 troy oz. $1 price move per lot = $100.
   // JPY Pairs (USDJPY, EURJPY, GBPJPY, AUDJPY): 1 standard lot = 100,000 units of base currency.
-  // For USDJPY, 1 pip = 0.01 JPY = $100,000 * 0.01 / current_rate USD = ~$6.67 at 150.00.
+  // 1 pip = 0.01 JPY = 1,000 JPY per standard lot.
+  // To convert JPY P&L to account currency (USD), divide 1,000 JPY by USDJPY exchange rate:
+  // For USDJPY, conversion rate is entryPrice. For crosses (EURJPY, GBPJPY), use usdjpyRate (or fallback to 150.0).
   let positionSizeLots = 0.01;
 
   if (pair.toUpperCase() === 'XAUUSD') {
-    const dollarRiskPerLot = riskDistance * 100; // 100 oz per lot
+    const dollarRiskPerLot = riskDistance * 100; // 100 oz per lot ($1 move = $100)
     if (dollarRiskPerLot > 0) {
       positionSizeLots = Math.max(0.01, Math.round((riskAmountUsd / dollarRiskPerLot) * 100) / 100);
     }
   } else if (pair.toUpperCase().endsWith('JPY')) {
-    // Forex JPY crosses
+    // Forex JPY crosses: 1 standard lot = 100,000 units
     const pipSize = 0.01;
     const pipsRisk = riskDistance / pipSize;
-    // Pip value in USD for USDJPY at entryPrice = (100,000 * 0.01) / entryPrice
-    const pipValuePerLotUsd = (100000 * pipSize) / (numEntry || 150.0);
+    const jpyToUsdRate = pair.toUpperCase() === 'USDJPY' ? numEntry : (Number(usdjpyRate) || 150.0);
+    const pipValuePerLotUsd = (100000 * pipSize) / (jpyToUsdRate || 150.0);
     const dollarRiskPerLot = pipsRisk * pipValuePerLotUsd;
     if (dollarRiskPerLot > 0) {
       positionSizeLots = Math.max(0.01, Math.round((riskAmountUsd / dollarRiskPerLot) * 100) / 100);
@@ -62,8 +66,8 @@ export function calculateTradeParameters({
     }
   }
 
-  // Calculate Entry Zones: default ±0.15% around entryPrice or ~20-30 pips for news volatility
-  const zoneSpread = pair.toUpperCase() === 'XAUUSD' ? 3.00 : 0.20;
+  // Calculate Entry Zones: anchored to recent ATR (±0.15 * ATR around entryPrice)
+  const zoneSpread = atr ? Math.max(0.01, Math.round(Number(atr) * 0.15 * 100) / 100) : (pair.toUpperCase() === 'XAUUSD' ? 3.00 : 0.20);
   const entryZoneMin = Math.round((numEntry - zoneSpread) * 100) / 100;
   const entryZoneMax = Math.round((numEntry + zoneSpread) * 100) / 100;
 

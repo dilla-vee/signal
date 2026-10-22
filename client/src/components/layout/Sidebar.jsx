@@ -20,6 +20,7 @@ export function Sidebar({ currentTab, setTab }) {
     { id: 'performance', label: 'Accuracy & PnL', icon: BarChart3, subtitle: 'Paper Trades' },
     { id: 'agents', label: 'AI Agent Team', icon: Bot, subtitle: '11 Analysts' },
     { id: 'risk-mt5', label: 'Risk & MT5 EA', icon: ShieldAlert, subtitle: 'News Filter' },
+    { id: 'health', label: 'Job Health Monitor', icon: Radio, subtitle: 'Schedulers & APIs' },
     { id: 'settings', label: 'Terminal Rules', icon: Sliders, subtitle: 'Risk & Time' }
   ];
 

@@ -11,6 +11,7 @@ import { PerformancePage } from './pages/PerformancePage';
 import { AgentsPage } from './pages/AgentsPage';
 import { RiskMt5Page } from './pages/RiskMt5Page';
 import { SettingsPage } from './pages/SettingsPage';
+import { HealthPage } from './pages/HealthPage';
 import { AuthPage } from './pages/AuthPage';
 import { supabase } from './lib/supabase';
 
@@ -50,9 +51,13 @@ export function App() {
   useEffect(() => {
     loadData();
 
+    // 30s background polling fallback
+    const pollInterval = setInterval(loadData, 30000);
+
     // Supabase Realtime subscription
+    let channel = null;
     if (supabase) {
-      const channel = supabase
+      channel = supabase
         .channel('public-market-intelligence')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, (payload) => {
           console.log('[Realtime Event Update]', payload);
@@ -63,11 +68,14 @@ export function App() {
           loadData();
         })
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     }
+
+    return () => {
+      clearInterval(pollInterval);
+      if (supabase && channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
   function handleSelectEvent(event) {
@@ -138,6 +146,10 @@ export function App() {
 
           {currentTab === 'risk-mt5' && (
             <RiskMt5Page events={events} />
+          )}
+
+          {currentTab === 'health' && (
+            <HealthPage />
           )}
 
           {currentTab === 'settings' && (

@@ -5,13 +5,16 @@ import { calculateTradeParameters } from '../utils/tradeCalculations.js';
 import { optionalAuth } from '../middleware/auth.js';
 import { runFullSignalPipeline, localScenarioStore } from '../services/agentCoordinatorService.js';
 import { postReleaseService, localSignalStore } from '../services/postReleaseService.js';
+import { calendarService } from '../services/calendarService.js';
 
 const router = express.Router();
 
 // GET /api/signals/latest
 router.get('/latest', optionalAuth, async (req, res, next) => {
   try {
+    const now = Date.now();
     const memorySignals = Array.from(localSignalStore.values());
+    let rawSignals = memorySignals;
 
     if (supabaseAdmin) {
       let query = supabaseAdmin
@@ -23,106 +26,56 @@ router.get('/latest', optionalAuth, async (req, res, next) => {
           )
         `)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       const { data, error } = await query;
       if (!error && data && data.length > 0) {
-        // Merge with memory signals if any
-        const combined = [...memorySignals, ...data.filter(d => !localSignalStore.has(d.id))];
-        return res.json(formatApiResponse(combined, 'Latest pre-news trading signals'));
+        rawSignals = [...memorySignals, ...data.filter(d => !localSignalStore.has(d.id))];
       }
     }
 
-    if (memorySignals.length > 0) {
-      return res.json(formatApiResponse(memorySignals, 'Latest pre-news trading signals'));
+    if (rawSignals.length === 0) {
+      return res.json(formatApiResponse([], 'No active pre-news trading signals recorded'));
     }
 
-    // High fidelity fallback signal for XAUUSD pre-news
-    const fallbackSignals = [
-      {
-        id: 'mock-sig-001',
-        pair: 'XAUUSD',
-        direction: 'BUY',
-        confidence_pct: 74,
-        timing: 'post_news_confirmation',
-        suggested_entry: 2654.50,
-        entry_zone_min: 2650.00,
-        entry_zone_max: 2656.00,
-        stop_loss: 2638.00,
-        take_profit_1: 2675.00,
-        take_profit_2: 2692.00,
-        risk_reward_ratio: 2.28,
-        position_size_lots: 0.60,
-        status: 'ACTIVE',
-        created_at: new Date().toISOString(),
-        key_drivers: [
-          'Consensus 3.1% YoY with downside skew in shelter index',
-          'Fed dovish bias caps USD rally on headline beat',
-          'Persistent safe-haven demand on geopolitical uncertainty'
-        ],
-        key_risks: [
-          'Sticky headline energy MoM could produce a transient dollar spike',
-          'Anticipate spread widening up to $1.80 on the release tick'
-        ],
-        dev_advocate_objections: [
-          'COT speculative long positioning is in the 90th percentile — asymmetric downside risk if data surprises hot',
-          'TIPS 10-year real yield remains elevated at ~1.95%, creating strong economic drag on non-yielding bullion'
-        ],
-        agreed_agents: ['Fundamentals', 'Central Bank', 'Rates & Yields', 'Technical Structure', 'Geopolitical'],
-        disagreed_agents: ['Cross-Asset Sentiment', 'Positioning'],
-        events: {
-          id: 'mock-event-1',
-          event_name: 'US Consumer Price Index (YoY)',
-          event_type: 'CPI',
-          currency: 'USD',
-          release_time: new Date(Date.now() + 150 * 60 * 1000).toISOString(),
-          impact_level: 'HIGH',
-          forecast_val: '3.1%',
-          previous_val: '3.2%'
-        }
-      },
-      {
-        id: 'mock-sig-002',
-        pair: 'USDJPY',
-        direction: 'SELL',
-        confidence_pct: 68,
-        timing: 'post_news_confirmation',
-        suggested_entry: 149.80,
-        entry_zone_min: 149.60,
-        entry_zone_max: 150.05,
-        stop_loss: 150.70,
-        take_profit_1: 148.40,
-        take_profit_2: 147.20,
-        risk_reward_ratio: 2.33,
-        position_size_lots: 0.35,
-        status: 'ACTIVE',
-        created_at: new Date().toISOString(),
-        key_drivers: [
-          'BoJ policy normalization ongoing; MoF verbal warnings active near 151',
-          'US-Japan yield spread compressing from 3.35% toward 3.15%'
-        ],
-        key_risks: [
-          'Broad USD squeeze if Core CPI beats by +0.2%'
-        ],
-        dev_advocate_objections: [
-          'Intervention risk is maximum in the 151.00-152.00 zone, but overnight carry yield remains heavily negative for short USDJPY.'
-        ],
-        agreed_agents: ['Central Bank', 'Rates & Yields', 'Positioning', 'Geopolitical'],
-        disagreed_agents: ['Technical Structure'],
-        events: {
-          id: 'mock-event-3',
-          event_name: 'Bank of Japan Monetary Policy Decision & Statement',
-          event_type: 'BOJ_DECISION',
-          currency: 'JPY',
-          release_time: new Date(Date.now() + 840 * 60 * 1000).toISOString(),
-          impact_level: 'HIGH',
-          forecast_val: '0.25%',
-          previous_val: '0.25%'
+    // 1. Process Expiration: mark signals past event release time as EXPIRED
+    const processedSignals = rawSignals.map(sig => {
+      const releaseIso = sig.release_time || sig.events?.release_time;
+      const expireIso = sig.expires_at || releaseIso;
+      const isExpired = expireIso ? (now > new Date(expireIso).getTime()) : false;
+      const finalStatus = isExpired && sig.status === 'ACTIVE' ? 'EXPIRED' : sig.status;
+
+      return {
+        ...sig,
+        status: finalStatus,
+        is_expired: isExpired,
+        expires_at: expireIso
+      };
+    });
+
+    // 2. Deduplicate: Never show two conflicting copies of the same signal for a pair.
+    // Group by pair and prioritize the most recently created ACTIVE signal, or most recent overall.
+    const pairMap = new Map();
+    for (const sig of processedSignals) {
+      const pair = sig.pair;
+      if (!pairMap.has(pair)) {
+        pairMap.set(pair, sig);
+      } else {
+        const existing = pairMap.get(pair);
+        // If current is ACTIVE and existing is not, prioritize current
+        if (sig.status === 'ACTIVE' && existing.status !== 'ACTIVE') {
+          pairMap.set(pair, sig);
+        } else if (sig.status === existing.status) {
+          // Both active or both non-active: pick the newer one
+          if (new Date(sig.created_at).getTime() > new Date(existing.created_at).getTime()) {
+            pairMap.set(pair, sig);
+          }
         }
       }
-    ];
+    }
 
-    res.json(formatApiResponse(fallbackSignals, 'Latest pre-news trading signals'));
+    const deduplicatedSignals = Array.from(pairMap.values());
+    return res.json(formatApiResponse(deduplicatedSignals, 'Latest deduplicated pre-news trading signals'));
   } catch (err) {
     next(err);
   }
@@ -132,8 +85,18 @@ router.get('/latest', optionalAuth, async (req, res, next) => {
 router.post('/generate', optionalAuth, async (req, res, next) => {
   try {
     const { eventId, pair = 'XAUUSD', userRules = {} } = req.body;
+    let targetEventId = eventId;
+    if (!targetEventId) {
+      const upcoming = await calendarService.getUpcomingEvents({ limit: 1, impact: 'ALL' });
+      targetEventId = upcoming[0]?.id;
+    }
+
+    if (!targetEventId) {
+      return res.status(422).json(formatApiError('Validation Error', 'Event ID is required to generate an AI signal. Real inputs must exist for this event.', 422));
+    }
+
     const result = await runFullSignalPipeline({
-      eventId,
+      eventId: targetEventId,
       pair,
       userRules: {
         ...userRules,
@@ -143,6 +106,9 @@ router.post('/generate', optionalAuth, async (req, res, next) => {
 
     res.json(formatApiResponse(result, `Full 11-agent playbook and pre-news signal generated for ${pair}`));
   } catch (err) {
+    if (err.message && err.message.includes('Real inputs required')) {
+      return res.status(422).json(formatApiError('Missing Real Inputs', err.message, 422));
+    }
     next(err);
   }
 });

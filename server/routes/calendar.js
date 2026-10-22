@@ -1,4 +1,5 @@
 import express from 'express';
+import { officialCalendarService } from '../services/officialCalendarService.js';
 import { calendarService } from '../services/calendarService.js';
 import { formatApiResponse, formatApiError } from '../utils/apiResponse.js';
 
@@ -8,12 +9,12 @@ const router = express.Router();
 router.get('/upcoming', async (req, res, next) => {
   try {
     const { limit = 20, impact = 'HIGH', currency } = req.query;
-    const events = await calendarService.getUpcomingEvents({
+    const events = await officialCalendarService.getUpcomingEvents({
       limit: parseInt(limit, 10),
       impact,
       currency
     });
-    res.json(formatApiResponse(events, 'Retrieved upcoming economic calendar events'));
+    res.json(formatApiResponse(events, 'Retrieved upcoming terms-compliant economic calendar events'));
   } catch (err) {
     next(err);
   }

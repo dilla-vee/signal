@@ -30,5 +30,11 @@ describe('Market Snapshot Builder Tests', () => {
     assert.ok(snapshot.central_bank_tone);
     assert.ok(snapshot.central_bank_tone.fed_stance);
     assert.ok(snapshot.central_bank_tone.boj_stance);
+
+    // Verify Provenance & Staleness metadata
+    assert.ok(snapshot.source_name);
+    assert.ok(snapshot.last_updated);
+    assert.equal(typeof snapshot.is_stale, 'boolean');
+    assert.equal(typeof snapshot.is_demo, 'boolean');
   });
 });

@@ -55,21 +55,19 @@ export async function runAnalyticalAgents({ eventId, pair = 'XAUUSD' } = {}) {
       try {
         event = await calendarService.getEventDetail(eventId);
       } catch (e) {
-        logger.warn(`Could not load full event details for ${eventId}, continuing with baseline`, { error: e.message });
+        logger.warn(`Could not load full event details for ${eventId}, continuing with upcoming`, { error: e.message });
       }
     }
 
     if (!event) {
-      event = {
-        id: eventId || 'mock-event-cpi',
-        event_name: 'US Consumer Price Index (YoY)',
-        event_type: 'CPI',
-        currency: 'USD',
-        impact_level: 'HIGH',
-        forecast_val: '3.1%',
-        previous_val: '3.2%',
-        release_time: new Date(Date.now() + 150 * 60 * 1000).toISOString()
-      };
+      const upcoming = await calendarService.getUpcomingEvents({ limit: 1, impact: 'ALL' });
+      if (upcoming && upcoming.length > 0) {
+        event = upcoming[0];
+      }
+    }
+
+    if (!event) {
+      throw new Error(`Real inputs required: No macroeconomic event found in calendar`);
     }
 
     // 3. Create agent_runs session in Supabase if connected
@@ -256,14 +254,24 @@ export async function runFullSignalPipeline({ eventId, pair = 'XAUUSD', userRule
     agreed_agents: judgeVerdict.agreed_agents,
     disagreed_agents: judgeVerdict.disagreed_agents,
     reasoning_synthesis: judgeVerdict.reasoning_synthesis,
-    status: judgeVerdict.status || 'ACTIVE',
     event_name: event.event_name,
     release_time: event.release_time,
+    expires_at: event.release_time || new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
 
-  // 5. Store Scenarios and Signal
+  // 5. Deduplicate and Store Signal: Supersede any previous active signals for this pair
+  for (const [existingId, existingSig] of localSignalStore.entries()) {
+    if (existingSig.pair === normalizedPair && existingSig.status === 'ACTIVE') {
+      localSignalStore.set(existingId, {
+        ...existingSig,
+        status: 'SUPERSEDED',
+        updated_at: new Date().toISOString()
+      });
+    }
+  }
+
   localSignalStore.set(signalId, finalizedSignal);
   localScenarioStore.set(event.id, {
     eventId: event.id,

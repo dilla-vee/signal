@@ -15,7 +15,10 @@ export function Badge({ children, variant = 'neutral', size = 'sm' }) {
     gold: 'bg-amber-950/80 text-terminal-gold border border-amber-500/30',
     high: 'bg-rose-950/90 text-rose-400 border border-rose-600/50 font-bold',
     medium: 'bg-amber-950/90 text-amber-400 border border-amber-600/50',
-    low: 'bg-emerald-950/80 text-emerald-400 border border-emerald-700/50'
+    low: 'bg-emerald-950/80 text-emerald-400 border border-emerald-700/50',
+    stale: 'bg-rose-950/95 text-rose-300 border border-rose-600 font-bold tracking-wider shadow-[0_0_8px_rgba(225,29,72,0.3)]',
+    demo: 'bg-red-950/95 text-red-400 border border-red-600 font-bold tracking-wider shadow-[0_0_8px_rgba(239,68,68,0.3)]',
+    live: 'bg-emerald-950/90 text-terminal-green border border-emerald-500 font-bold tracking-wider'
   };
 
   return (

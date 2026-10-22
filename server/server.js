@@ -13,7 +13,7 @@ import agentsRoutes from './routes/agents.js';
 import performanceRoutes from './routes/performance.js';
 import backtestRoutes from './routes/backtest.js';
 import riskRoutes from './routes/risk.js';
-import { startCalendarCron } from './jobs/calendarCron.js';
+import { schedulerService } from './jobs/schedulerService.js';
 
 const app = express();
 
@@ -63,7 +63,7 @@ const isDirectRun = process.argv[1] && (process.argv[1].endsWith('server.js') ||
 if (isDirectRun && process.env.NODE_ENV !== 'test' && !process.env.DISABLE_AUTO_START) {
   server = app.listen(config.port, () => {
     logger.info(`Macro Signal Server running on port ${config.port} [${config.nodeEnv}]`);
-    startCalendarCron();
+    schedulerService.start();
   });
 }
 

@@ -96,6 +96,10 @@ Return ONLY a single valid JSON matching JudgeSignalOutputSchema:
     const startTime = Date.now();
     logger.info(`[Judge Agent] Adjudicating final decision for ${marketSnapshot?.pair || 'XAUUSD'}...`);
 
+    const pair = marketSnapshot?.pair || 'XAUUSD';
+    const livePrice = Number(marketSnapshot?.current_price) || (pair === 'XAUUSD' ? 2650.00 : 150.00);
+    const atr = Number(marketSnapshot?.technical_summary?.atr) || (pair === 'XAUUSD' ? 15.0 : 0.65);
+
     // 1. If Anthropic Claude API is configured, call Claude
     if (anthropicClient) {
       try {
@@ -112,6 +116,12 @@ Return ONLY a single valid JSON matching JudgeSignalOutputSchema:
         const parsed = this.extractJson(rawText);
         const validated = JudgeSignalOutputSchema.parse(parsed);
 
+        // Strict Guard: Reject signal if entry is > 1 ATR away from live price
+        const entryDist = Math.abs(validated.suggested_entry - livePrice);
+        if (entryDist > atr) {
+          throw new Error(`Signal rejected: suggested entry ${validated.suggested_entry} is ${entryDist.toFixed(2)} away from live price ${livePrice}, exceeding 1 ATR (${atr})`);
+        }
+
         return {
           agent_name: this.name,
           ...validated,
@@ -120,6 +130,9 @@ Return ONLY a single valid JSON matching JudgeSignalOutputSchema:
           execution_source: 'anthropic_claude'
         };
       } catch (err) {
+        if (err.message && err.message.includes('Signal rejected')) {
+          throw err;
+        }
         logger.warn(`[${this.name}] Claude API failed, using deterministic adjudication rules`, { error: err.message });
       }
     }
@@ -136,6 +149,12 @@ Return ONLY a single valid JSON matching JudgeSignalOutputSchema:
     });
 
     const validated = JudgeSignalOutputSchema.parse(verdict);
+
+    // Strict Guard: Reject signal if entry is > 1 ATR away from live price
+    const entryDist = Math.abs(validated.suggested_entry - livePrice);
+    if (entryDist > atr) {
+      throw new Error(`Signal rejected: suggested entry ${validated.suggested_entry} is ${entryDist.toFixed(2)} away from live price ${livePrice}, exceeding 1 ATR (${atr})`);
+    }
 
     return {
       agent_name: this.name,
@@ -246,7 +265,9 @@ Return ONLY a single valid JSON matching JudgeSignalOutputSchema:
       takeProfit1,
       takeProfit2,
       accountBalance,
-      riskPct
+      riskPct,
+      usdjpyRate: marketSnapshot?.usdjpy_price || null,
+      atr
     });
 
     const keyDrivers = [

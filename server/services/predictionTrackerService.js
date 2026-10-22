@@ -3,234 +3,8 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { logger } from '../utils/logger.js';
 import { localSignalStore } from './postReleaseService.js';
 
-// In-memory fallback stores for offline/mock performance tracking
+// In-memory store for recorded live paper-trading outcomes
 export const localOutcomeStore = new Map();
-
-// Seed baseline historical paper-trading audit outcomes
-const INITIAL_BASELINE_OUTCOMES = [
-  {
-    id: 'out-001',
-    signal_id: 'mock-sig-hist-1',
-    pair: 'XAUUSD',
-    event_type: 'CPI',
-    direction: 'BUY',
-    confidence_pct: 78,
-    actual_entry_filled: 2622.00,
-    outcome_type: 'WIN',
-    price_15m: 2638.50,
-    price_1h: 2646.00,
-    price_4h: 2652.00,
-    hit_tp1: true,
-    hit_tp2: true,
-    hit_sl: false,
-    max_favorable_excursion_pips: 300,
-    max_adverse_excursion_pips: 25,
-    r_multiple_achieved: 2.14,
-    pnl_usd: 214.00,
-    agent_votes: {
-      'Fundamentals Agent': 'BULLISH',
-      'Central Bank Agent': 'BULLISH',
-      'Rates & Yield Agent': 'BULLISH',
-      'Cross-Asset Agent': 'BEARISH',
-      'Technical Structure Agent': 'BULLISH',
-      'Positioning Agent': 'NEUTRAL',
-      'Geopolitical Agent': 'BULLISH',
-      'Historical Reaction Agent': 'BULLISH'
-    },
-    created_at: new Date(Date.now() - 86400000 * 14).toISOString()
-  },
-  {
-    id: 'out-002',
-    signal_id: 'mock-sig-hist-2',
-    pair: 'USDJPY',
-    event_type: 'BOJ_DECISION',
-    direction: 'SELL',
-    confidence_pct: 82,
-    actual_entry_filled: 151.20,
-    outcome_type: 'WIN',
-    price_15m: 150.10,
-    price_1h: 149.40,
-    price_4h: 148.80,
-    hit_tp1: true,
-    hit_tp2: true,
-    hit_sl: false,
-    max_favorable_excursion_pips: 240,
-    max_adverse_excursion_pips: 15,
-    r_multiple_achieved: 2.45,
-    pnl_usd: 245.00,
-    agent_votes: {
-      'Fundamentals Agent': 'BEARISH',
-      'Central Bank Agent': 'BEARISH',
-      'Rates & Yield Agent': 'BEARISH',
-      'Cross-Asset Agent': 'BEARISH',
-      'Technical Structure Agent': 'BULLISH',
-      'Positioning Agent': 'BEARISH',
-      'Geopolitical Agent': 'BEARISH',
-      'Historical Reaction Agent': 'BEARISH'
-    },
-    created_at: new Date(Date.now() - 86400000 * 11).toISOString()
-  },
-  {
-    id: 'out-003',
-    signal_id: 'mock-sig-hist-3',
-    pair: 'XAUUSD',
-    event_type: 'NFP',
-    direction: 'BUY',
-    confidence_pct: 64,
-    actual_entry_filled: 2640.00,
-    outcome_type: 'LOSS',
-    price_15m: 2628.00,
-    price_1h: 2624.00,
-    price_4h: 2631.00,
-    hit_tp1: false,
-    hit_tp2: false,
-    hit_sl: true,
-    max_favorable_excursion_pips: 30,
-    max_adverse_excursion_pips: 160,
-    r_multiple_achieved: -1.00,
-    pnl_usd: -100.00,
-    agent_votes: {
-      'Fundamentals Agent': 'BULLISH',
-      'Central Bank Agent': 'BULLISH',
-      'Rates & Yield Agent': 'BEARISH',
-      'Cross-Asset Agent': 'BEARISH',
-      'Technical Structure Agent': 'BULLISH',
-      'Positioning Agent': 'BEARISH',
-      'Geopolitical Agent': 'BULLISH',
-      'Historical Reaction Agent': 'BEARISH'
-    },
-    created_at: new Date(Date.now() - 86400000 * 9).toISOString()
-  },
-  {
-    id: 'out-004',
-    signal_id: 'mock-sig-hist-4',
-    pair: 'USDJPY',
-    event_type: 'CPI',
-    direction: 'BUY',
-    confidence_pct: 76,
-    actual_entry_filled: 149.80,
-    outcome_type: 'WIN',
-    price_15m: 150.60,
-    price_1h: 151.10,
-    price_4h: 151.45,
-    hit_tp1: true,
-    hit_tp2: true,
-    hit_sl: false,
-    max_favorable_excursion_pips: 165,
-    max_adverse_excursion_pips: 20,
-    r_multiple_achieved: 2.10,
-    pnl_usd: 210.00,
-    agent_votes: {
-      'Fundamentals Agent': 'BULLISH',
-      'Central Bank Agent': 'BULLISH',
-      'Rates & Yield Agent': 'BULLISH',
-      'Cross-Asset Agent': 'BULLISH',
-      'Technical Structure Agent': 'BULLISH',
-      'Positioning Agent': 'NEUTRAL',
-      'Geopolitical Agent': 'NEUTRAL',
-      'Historical Reaction Agent': 'BULLISH'
-    },
-    created_at: new Date(Date.now() - 86400000 * 6).toISOString()
-  },
-  {
-    id: 'out-005',
-    signal_id: 'mock-sig-hist-5',
-    pair: 'EURJPY',
-    event_type: 'BOJ_DECISION',
-    direction: 'SELL',
-    confidence_pct: 70,
-    actual_entry_filled: 162.40,
-    outcome_type: 'WIN',
-    price_15m: 161.50,
-    price_1h: 160.90,
-    price_4h: 160.70,
-    hit_tp1: true,
-    hit_tp2: false,
-    hit_sl: false,
-    max_favorable_excursion_pips: 170,
-    max_adverse_excursion_pips: 30,
-    r_multiple_achieved: 1.80,
-    pnl_usd: 180.00,
-    agent_votes: {
-      'Fundamentals Agent': 'BEARISH',
-      'Central Bank Agent': 'BEARISH',
-      'Rates & Yield Agent': 'BEARISH',
-      'Cross-Asset Agent': 'BEARISH',
-      'Technical Structure Agent': 'NEUTRAL',
-      'Positioning Agent': 'BEARISH',
-      'Geopolitical Agent': 'BEARISH',
-      'Historical Reaction Agent': 'BEARISH'
-    },
-    created_at: new Date(Date.now() - 86400000 * 4).toISOString()
-  },
-  {
-    id: 'out-006',
-    signal_id: 'mock-sig-hist-6',
-    pair: 'XAUUSD',
-    event_type: 'FOMC',
-    direction: 'NO_TRADE',
-    confidence_pct: 45,
-    actual_entry_filled: null,
-    outcome_type: 'SCRATCH',
-    price_15m: 2655.00,
-    price_1h: 2652.00,
-    price_4h: 2658.00,
-    hit_tp1: false,
-    hit_tp2: false,
-    hit_sl: false,
-    max_favorable_excursion_pips: 0,
-    max_adverse_excursion_pips: 0,
-    r_multiple_achieved: 0.00,
-    pnl_usd: 0.00,
-    agent_votes: {
-      'Fundamentals Agent': 'NEUTRAL',
-      'Central Bank Agent': 'NEUTRAL',
-      'Rates & Yield Agent': 'BULLISH',
-      'Cross-Asset Agent': 'BEARISH',
-      'Technical Structure Agent': 'BULLISH',
-      'Positioning Agent': 'BEARISH',
-      'Geopolitical Agent': 'NEUTRAL',
-      'Historical Reaction Agent': 'NEUTRAL'
-    },
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString()
-  },
-  {
-    id: 'out-007',
-    signal_id: 'mock-sig-hist-7',
-    pair: 'GBPJPY',
-    event_type: 'RETAIL_SALES',
-    direction: 'BUY',
-    confidence_pct: 68,
-    actual_entry_filled: 194.50,
-    outcome_type: 'WIN',
-    price_15m: 195.20,
-    price_1h: 195.70,
-    price_4h: 195.90,
-    hit_tp1: true,
-    hit_tp2: false,
-    hit_sl: false,
-    max_favorable_excursion_pips: 140,
-    max_adverse_excursion_pips: 25,
-    r_multiple_achieved: 1.75,
-    pnl_usd: 175.00,
-    agent_votes: {
-      'Fundamentals Agent': 'BULLISH',
-      'Central Bank Agent': 'NEUTRAL',
-      'Rates & Yield Agent': 'BULLISH',
-      'Cross-Asset Agent': 'BULLISH',
-      'Technical Structure Agent': 'BULLISH',
-      'Positioning Agent': 'BULLISH',
-      'Geopolitical Agent': 'NEUTRAL',
-      'Historical Reaction Agent': 'BULLISH'
-    },
-    created_at: new Date(Date.now() - 86400000 * 1).toISOString()
-  }
-];
-
-// Initialize local cache
-for (const out of INITIAL_BASELINE_OUTCOMES) {
-  localOutcomeStore.set(out.id, out);
-}
 
 export class PredictionTrackerService {
   /**
@@ -341,6 +115,47 @@ export class PredictionTrackerService {
     }
     if (eventType && eventType !== 'ALL') {
       outcomes = outcomes.filter(o => o.event_type === eventType.toUpperCase());
+    }
+
+    // If 0 real executed outcomes exist, return clear uncalibrated state
+    if (outcomes.length === 0) {
+      return {
+        totalSignals: 0,
+        completedDecisions: 0,
+        totalWins: 0,
+        totalLosses: 0,
+        totalScratches: 0,
+        hitRatePct: 0,
+        profitFactor: 0,
+        avgRiskRewardAchieved: 0,
+        totalPnlUsd: 0,
+        returnPct: 0,
+        currentBalance: 10000.0,
+        maxDrawdownPct: 0,
+        maxDrawdownUsd: 0,
+        equityCurve: [
+          {
+            tradeIndex: 0,
+            label: 'Baseline',
+            balance: 10000.0,
+            pnl: 0,
+            drawdownPct: 0,
+            date: new Date().toISOString()
+          }
+        ],
+        pairStats: [],
+        eventStats: [],
+        confidenceStats: [
+          { tier: 'HIGH', trades: 0, winRate: '0%', pnl: '$0' },
+          { tier: 'MEDIUM', trades: 0, winRate: '0%', pnl: '$0' },
+          { tier: 'LOW', trades: 0, winRate: '0%', pnl: '$0' }
+        ],
+        source_name: 'Live Verified Execution Ledger',
+        last_updated: new Date().toISOString(),
+        is_stale: false,
+        is_demo: false,
+        has_live_data: false
+      };
     }
 
     // Sort by created_at ascending for equity curve calculation
@@ -483,7 +298,12 @@ export class PredictionTrackerService {
       equityCurve,
       pairStats,
       eventStats,
-      confidenceStats: confStats
+      confidenceStats: confStats,
+      source_name: 'Live Verified Execution Ledger',
+      last_updated: new Date().toISOString(),
+      is_stale: false,
+      is_demo: false,
+      has_live_data: true
     };
   }
 
@@ -549,8 +369,6 @@ export class PredictionTrackerService {
         ? Math.round((a.correctCount / a.signalsEvaluated) * 1000) / 10
         : 70.0;
 
-      // Dynamic weighting calculation: baseline = 1.0
-      // Weak agents (<60%) get downgraded to 0.70; Top agents (>75%) get upgraded to 1.25
       let suggestedWeight = 1.0;
       let calibrationStatus = 'BALANCED';
 
@@ -568,12 +386,16 @@ export class PredictionTrackerService {
         correct_signals: a.correctCount,
         accuracy_pct: accuracyPct,
         suggested_weight: suggestedWeight,
-        calibration_status: calibrationStatus
+        calibration_status: calibrationStatus,
+        source_name: 'Empirical Agent Calibration',
+        last_updated: new Date().toISOString(),
+        is_stale: false,
+        is_demo: false
       };
     });
 
     // Sort descending by accuracy
-    leaderboard.sort((a, b) => b.accuracy_pct - a.accuracy_pct);
+    leaderboard.sort((a, b) => (b.accuracy_pct || 0) - (a.accuracy_pct || 0));
 
     return leaderboard;
   }

@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Activity, TrendingUp, TrendingDown, RefreshCw, Landmark, ShieldCheck } from 'lucide-react';
+import { Layers, Activity, TrendingUp, TrendingDown, RefreshCw, Landmark, ShieldCheck, Clock, Database } from 'lucide-react';
 import { Badge } from '../common/Badge';
+import { TimeAgo } from '../common/TimeAgo';
 
 export function MarketSnapshotCard({ pair = 'XAUUSD', eventId = null }) {
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   async function fetchSnapshot() {
-    setLoading(true);
     try {
       const res = await fetch(`/api/snapshots/latest/${pair}`);
       if (res.ok) {
         const json = await res.json();
         setSnapshot(json.data);
+        setFetchError(null);
+      } else {
+        setFetchError(`Snapshot server responded with HTTP ${res.status}`);
       }
     } catch (err) {
       console.warn('Failed to fetch market snapshot:', err);
+      setFetchError(err.message || 'Network error fetching market snapshot');
     } finally {
       setLoading(false);
     }
@@ -23,64 +28,89 @@ export function MarketSnapshotCard({ pair = 'XAUUSD', eventId = null }) {
 
   useEffect(() => {
     fetchSnapshot();
+    const interval = setInterval(fetchSnapshot, 30000); // 30s polling
+    return () => clearInterval(interval);
   }, [pair, eventId]);
 
   if (loading && !snapshot) {
     return (
       <div className="p-6 bg-terminal-surface border border-terminal-border rounded-xl text-center text-xs font-mono text-slate-400">
         <RefreshCw className="w-4 h-4 animate-spin text-terminal-cyan mx-auto mb-2" />
-        <span>Synthesizing cross-asset market snapshot for {pair}...</span>
+        <span>Synthesizing live cross-asset market snapshot for {pair}...</span>
       </div>
     );
   }
 
-  const s = snapshot || {
-    us_2y_yield: 4.02,
-    us_10y_yield: 4.18,
-    us_real_yield: 1.84,
-    dxy: 102.85,
-    jgb_yield: 0.95,
-    us_jp_spread: 3.23,
-    spx: 5815.20,
-    nasdaq: 18340.50,
-    vix: 16.40,
-    oil_wti: 71.20,
-    cot_gold_net: 265400,
-    cot_jpy_net: -42100,
-    technical_summary: {
-      trend: 'BULLISH',
-      atr: 28.5,
-      keySupport: 2635.0,
-      keyResistance: 2685.0
-    },
-    central_bank_tone: {
-      fed_stance: 'DOVISH_LEANING',
-      boj_stance: 'HAWKISH_NORMALIZATION',
-      mof_intervention_risk: 'MODERATE_HIGH'
+  if (fetchError && !snapshot) {
+    return (
+      <div className="p-6 bg-terminal-surface border border-rose-900/60 rounded-xl text-center text-xs font-mono text-rose-400 space-y-2">
+        <div className="font-bold text-sm">Market Snapshot Feed Unavailable</div>
+        <p className="text-slate-400">{fetchError}</p>
+        <button
+          onClick={fetchSnapshot}
+          className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded transition-colors text-xs"
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
+
+  const s = snapshot;
+  if (!s) return null;
+
+  // Check Staleness & Demo conditions
+  const now = Date.now();
+  const updatedTimeMs = s.last_updated ? new Date(s.last_updated).getTime() : 0;
+  const isOlderThanRefresh = (now - updatedTimeMs) > (60 * 1000); // 60s
+  const isStale = Boolean(s.is_stale) || isOlderThanRefresh;
+  const isDemo = Boolean(s.is_demo);
+
+  function formatTime(isoString) {
+    if (!isoString) return 'Unknown';
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch (e) {
+      return isoString;
     }
-  };
+  }
 
   return (
-    <div className="bg-terminal-surface border border-terminal-border rounded-xl p-5 shadow-lg space-y-4 font-mono text-xs">
+    <div className={`bg-terminal-surface border ${isStale || isDemo ? 'border-rose-900/60' : 'border-terminal-border'} rounded-xl p-5 shadow-lg space-y-4 font-mono text-xs`}>
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-terminal-border">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-terminal-border">
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-terminal-cyan" />
           <h3 className="font-bold text-white uppercase tracking-wide">
             Structured Point-in-Time Market Snapshot ({pair})
           </h3>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-terminal-cyan border border-cyan-700">
-            PRE-NEWS BASELINE
-          </span>
+          {isDemo ? (
+            <Badge variant="demo" size="xs">DEMO DATA</Badge>
+          ) : isStale ? (
+            <Badge variant="stale" size="xs">STALE</Badge>
+          ) : (
+            <Badge variant="live" size="xs">LIVE FEED</Badge>
+          )}
         </div>
 
-        <button
-          onClick={fetchSnapshot}
-          className="p-1.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-terminal-cyan transition-colors"
-          title="Refresh Snapshot"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-3">
+          <TimeAgo
+            timestamp={s.last_updated}
+            refreshWindowSec={60}
+            sourceName={s.source_name || 'Yahoo Finance Live Market Feed'}
+            isStale={isStale}
+            isDemo={isDemo}
+          />
+
+          <button
+            onClick={fetchSnapshot}
+            className="p-1.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-terminal-cyan transition-colors"
+            title="Refresh Snapshot"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Grid: 4 Pillars of Market Intelligence */}

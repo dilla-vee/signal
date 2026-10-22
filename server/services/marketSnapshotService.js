@@ -49,7 +49,11 @@ export async function buildMarketSnapshot({ eventId = null, pair = 'XAUUSD', for
       cot_gold_net: macroData.cot_gold_net,
       cot_jpy_net: macroData.cot_jpy_net,
       technical_summary: technicalStructure,
-      central_bank_tone: macroData.central_bank_tone
+      central_bank_tone: macroData.central_bank_tone,
+      source_name: macroData.source_name || 'Yahoo Finance Live Market Feed',
+      last_updated: macroData.last_updated || new Date().toISOString(),
+      is_stale: Boolean(macroData.is_stale),
+      is_demo: Boolean(macroData.is_demo)
     };
 
     // 4. Save to Supabase if connected

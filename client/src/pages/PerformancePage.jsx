@@ -13,7 +13,9 @@ import {
   AlertTriangle,
   Scale,
   Sliders,
-  Filter
+  Filter,
+  Clock,
+  Database
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Badge } from '../components/common/Badge';
@@ -86,15 +88,20 @@ export function PerformancePage() {
     }
   }
 
-  // Fallback equity curve if loading
-  const equityCurveData = summary?.equityCurve || [
-    { tradeIndex: 0, label: 'Start', balance: 10000, pnl: 0, drawdownPct: 0 },
-    { tradeIndex: 1, label: 'T1 (CPI)', balance: 10214, pnl: 214, drawdownPct: 0 },
-    { tradeIndex: 2, label: 'T2 (BOJ)', balance: 10459, pnl: 245, drawdownPct: 0 },
-    { tradeIndex: 3, label: 'T3 (NFP)', balance: 10359, pnl: -100, drawdownPct: 1.0 },
-    { tradeIndex: 4, label: 'T4 (CPI)', balance: 10569, pnl: 210, drawdownPct: 0 },
-    { tradeIndex: 5, label: 'T5 (BOJ)', balance: 10749, pnl: 180, drawdownPct: 0 },
-    { tradeIndex: 6, label: 'T6 (Retail)', balance: 10924, pnl: 175, drawdownPct: 0 }
+  function formatTime(isoString) {
+    if (!isoString) return 'Unknown';
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch (e) {
+      return isoString;
+    }
+  }
+
+  const hasLiveData = Boolean(summary?.has_live_data) && (summary?.completedDecisions > 0);
+
+  const equityCurveData = (hasLiveData && summary?.equityCurve?.length > 1) ? summary.equityCurve : [
+    { tradeIndex: 0, label: 'Baseline', balance: 10000, pnl: 0, drawdownPct: 0 }
   ];
 
   return (
@@ -111,18 +118,36 @@ export function PerformancePage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs font-mono text-slate-400">
+            <Database className="w-3.5 h-3.5 text-slate-500" />
+            <span>Source: <strong className="text-slate-300">{summary?.source_name || 'Live Verified Execution Ledger'}</strong></span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs font-mono text-slate-400">
+            <Clock className="w-3.5 h-3.5 text-slate-500" />
+            <span>Updated: <strong className="text-slate-300">{formatTime(summary?.last_updated)}</strong></span>
+          </div>
+
           <button
             onClick={loadPerformanceData}
             className="p-1.5 rounded bg-slate-900 border border-terminal-border text-slate-300 hover:text-terminal-cyan transition-colors"
             title="Refresh Metrics"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <div className="text-xs font-mono px-3 py-1 rounded bg-emerald-950 text-terminal-green border border-emerald-600/40 font-bold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-terminal-green animate-pulse"></span>
-            <span>AUDIT ACTIVE</span>
-          </div>
+
+          {hasLiveData ? (
+            <div className="text-xs font-mono px-3 py-1 rounded bg-emerald-950 text-terminal-green border border-emerald-600/40 font-bold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-terminal-green animate-pulse"></span>
+              <span>LIVE AUDIT ACTIVE</span>
+            </div>
+          ) : (
+            <div className="text-xs font-mono px-3 py-1 rounded bg-slate-900 text-slate-400 border border-slate-700 font-bold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+              <span>AWAITING LIVE TRADES</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -131,17 +156,17 @@ export function PerformancePage() {
         <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5 shadow-sm">
           <div className="text-[10px] text-slate-500 uppercase">Hit Rate (Win %)</div>
           <div className="text-2xl font-bold text-terminal-green tabular-nums mt-1">
-            {summary?.hitRatePct ? `${summary.hitRatePct}%` : '83.3%'}
+            {hasLiveData ? `${summary.hitRatePct}%` : '0.0%'}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">
-            {summary?.totalWins || 5} Wins / {summary?.totalLosses || 1} Losses
+            {summary?.totalWins || 0} Wins / {summary?.totalLosses || 0} Losses
           </div>
         </div>
 
         <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5 shadow-sm">
           <div className="text-[10px] text-slate-500 uppercase">Avg Risk/Reward</div>
           <div className="text-2xl font-bold text-terminal-cyan tabular-nums mt-1">
-            1:{summary?.avgRiskRewardAchieved || '2.07'}
+            {hasLiveData ? `1:${summary.avgRiskRewardAchieved}` : '1:0.0'}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">Realized Multiplier</div>
         </div>
@@ -149,7 +174,7 @@ export function PerformancePage() {
         <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5 shadow-sm">
           <div className="text-[10px] text-slate-500 uppercase">Profit Factor</div>
           <div className="text-2xl font-bold text-terminal-gold tabular-nums mt-1">
-            {summary?.profitFactor || '10.24'}
+            {hasLiveData ? (summary.profitFactor || '0.00') : '0.00'}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">Gross Win / Gross Loss</div>
         </div>
@@ -157,27 +182,27 @@ export function PerformancePage() {
         <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5 shadow-sm">
           <div className="text-[10px] text-slate-500 uppercase">Paper Return</div>
           <div className="text-2xl font-bold text-emerald-400 tabular-nums mt-1">
-            {summary?.returnPct ? `+${summary.returnPct}%` : '+9.2%'}
+            {hasLiveData ? `+${summary.returnPct}%` : '0.0%'}
           </div>
           <div className="text-[10px] text-emerald-500/80 mt-0.5">
-            {summary?.totalPnlUsd ? `+$${summary.totalPnlUsd.toFixed(2)}` : '+$924.00'}
+            ${summary?.totalPnlUsd ? summary.totalPnlUsd.toFixed(2) : '0.00'} PnL
           </div>
         </div>
 
         <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5 shadow-sm">
           <div className="text-[10px] text-slate-500 uppercase">Max Drawdown</div>
           <div className="text-2xl font-bold text-terminal-red tabular-nums mt-1">
-            {summary?.maxDrawdownPct ? `-${summary.maxDrawdownPct}%` : '-1.0%'}
+            {hasLiveData ? `-${summary.maxDrawdownPct}%` : '0.0%'}
           </div>
           <div className="text-[10px] text-rose-400/80 mt-0.5">
-            {summary?.maxDrawdownUsd ? `-$${summary.maxDrawdownUsd.toFixed(2)}` : '-$100.00'}
+            -${summary?.maxDrawdownUsd ? summary.maxDrawdownUsd.toFixed(2) : '0.00'}
           </div>
         </div>
 
         <div className="bg-terminal-surface border border-terminal-border rounded-lg p-3.5 shadow-sm">
-          <div className="text-[10px] text-slate-500 uppercase">Filtered Binary Traps</div>
+          <div className="text-[10px] text-slate-500 uppercase">Filtered Traps</div>
           <div className="text-2xl font-bold text-purple-400 tabular-nums mt-1">
-            {summary?.totalScratches || 1} Saves
+            {summary?.totalScratches || 0}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">NO_TRADE Preservations</div>
         </div>
@@ -196,46 +221,54 @@ export function PerformancePage() {
           </div>
           <div className="text-xs font-mono text-terminal-green font-bold flex items-center gap-1">
             <ArrowUpRight className="w-4 h-4" />
-            <span>Balance: ${summary?.currentBalance?.toFixed(2) || '10,924.00'}</span>
+            <span>Balance: ${summary?.currentBalance ? summary.currentBalance.toFixed(2) : '10,000.00'}</span>
           </div>
         </div>
 
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={equityCurveData}>
-              <defs>
-                <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00F0FF" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#00F0FF" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1F293D" />
-              <XAxis dataKey="label" stroke="#64748B" tick={{ fontSize: 10, fontFamily: 'monospace' }} />
-              <YAxis
-                stroke="#64748B"
-                domain={['dataMin - 150', 'dataMax + 150']}
-                tick={{ fontSize: 10, fontFamily: 'monospace' }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#0B0E14',
-                  borderColor: '#1F293D',
-                  fontFamily: 'monospace',
-                  fontSize: '11px'
-                }}
-                itemStyle={{ color: '#00F0FF' }}
-              />
-              <Area
-                type="monotone"
-                dataKey="balance"
-                stroke="#00F0FF"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#equityGrad)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {hasLiveData ? (
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={equityCurveData}>
+                <defs>
+                  <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00F0FF" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#00F0FF" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1F293D" />
+                <XAxis dataKey="label" stroke="#64748B" tick={{ fontSize: 10, fontFamily: 'monospace' }} />
+                <YAxis
+                  stroke="#64748B"
+                  domain={['dataMin - 150', 'dataMax + 150']}
+                  tick={{ fontSize: 10, fontFamily: 'monospace' }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0B0E14',
+                    borderColor: '#1F293D',
+                    fontFamily: 'monospace',
+                    fontSize: '11px'
+                  }}
+                  itemStyle={{ color: '#00F0FF' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="balance"
+                  stroke="#00F0FF"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#equityGrad)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="p-12 text-center font-mono border border-dashed border-terminal-border/60 rounded-lg">
+            <p className="text-xs text-slate-400">
+              Seed demo equity curves have been purged. Complete trade executions on live releases will dynamically plot the audited equity curve here.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 4. Performance Breakdowns: Pair, Event Type, & Confidence */}
@@ -243,66 +276,70 @@ export function PerformancePage() {
         {/* Pair Breakdown */}
         <div className="bg-terminal-surface border border-terminal-border rounded-xl p-4 shadow-lg">
           <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">Performance by Pair</h3>
-          <div className="space-y-2">
-            {(summary?.pairStats || [
-              { pair: 'XAUUSD', trades: 2, winRate: '50%', pnl: '+$114' },
-              { pair: 'USDJPY', trades: 2, winRate: '100%', pnl: '+$455' },
-              { pair: 'EURJPY', trades: 1, winRate: '100%', pnl: '+$180' },
-              { pair: 'GBPJPY', trades: 1, winRate: '100%', pnl: '+$175' }
-            ]).map((row, i) => (
-              <div key={i} className="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-900">
-                <span className="font-bold text-white">{row.pair}</span>
-                <span className="text-slate-400">{row.trades} Plays</span>
-                <span className="text-terminal-cyan font-semibold">{row.winRate}</span>
-                <span className={`font-bold ${row.pnl.startsWith('+') ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                  {row.pnl}
-                </span>
-              </div>
-            ))}
-          </div>
+          {summary?.pairStats && summary.pairStats.length > 0 ? (
+            <div className="space-y-2">
+              {summary.pairStats.map((row, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-900">
+                  <span className="font-bold text-white">{row.pair}</span>
+                  <span className="text-slate-400">{row.trades} Plays</span>
+                  <span className="text-terminal-cyan font-semibold">{row.winRate}</span>
+                  <span className={`font-bold ${row.pnl.startsWith('+') ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                    {row.pnl}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-slate-500 text-[11px]">
+              No pair-specific trade records logged yet.
+            </div>
+          )}
         </div>
 
         {/* Event Type Breakdown */}
         <div className="bg-terminal-surface border border-terminal-border rounded-xl p-4 shadow-lg">
           <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">Performance by Event Type</h3>
-          <div className="space-y-2">
-            {(summary?.eventStats || [
-              { type: 'CPI', trades: 2, winRate: '100%', pnl: '+$424' },
-              { type: 'BOJ_DECISION', trades: 2, winRate: '100%', pnl: '+$425' },
-              { type: 'RETAIL_SALES', trades: 1, winRate: '100%', pnl: '+$175' },
-              { type: 'NFP', trades: 1, winRate: '0%', pnl: '-$100' }
-            ]).map((row, i) => (
-              <div key={i} className="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-900">
-                <span className="font-bold text-white">{row.type}</span>
-                <span className="text-slate-400">{row.trades} Plays</span>
-                <span className="text-terminal-cyan font-semibold">{row.winRate}</span>
-                <span className={`font-bold ${row.pnl.startsWith('+') ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                  {row.pnl}
-                </span>
-              </div>
-            ))}
-          </div>
+          {summary?.eventStats && summary.eventStats.length > 0 ? (
+            <div className="space-y-2">
+              {summary.eventStats.map((row, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-900">
+                  <span className="font-bold text-white">{row.type}</span>
+                  <span className="text-slate-400">{row.trades} Plays</span>
+                  <span className="text-terminal-cyan font-semibold">{row.winRate}</span>
+                  <span className={`font-bold ${row.pnl.startsWith('+') ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                    {row.pnl}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-slate-500 text-[11px]">
+              No event-specific trade records logged yet.
+            </div>
+          )}
         </div>
 
         {/* Confidence Tier Breakdown */}
         <div className="bg-terminal-surface border border-terminal-border rounded-xl p-4 shadow-lg">
           <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3">Performance by Confidence</h3>
-          <div className="space-y-2">
-            {(summary?.confidenceStats || [
-              { tier: 'HIGH (≥75%)', trades: 3, winRate: '100%', pnl: '+$669' },
-              { tier: 'MEDIUM (60-74%)', trades: 3, winRate: '67%', pnl: '+$255' },
-              { tier: 'LOW (<60%)', trades: 1, winRate: '0%', pnl: '$0' }
-            ]).map((row, i) => (
-              <div key={i} className="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-900">
-                <span className="font-bold text-white">{row.tier}</span>
-                <span className="text-slate-400">{row.trades} Plays</span>
-                <span className="text-terminal-cyan font-semibold">{row.winRate}</span>
-                <span className={`font-bold ${row.pnl.startsWith('+') ? 'text-terminal-green' : 'text-slate-400'}`}>
-                  {row.pnl}
-                </span>
-              </div>
-            ))}
-          </div>
+          {summary?.confidenceStats && summary.confidenceStats.length > 0 ? (
+            <div className="space-y-2">
+              {summary.confidenceStats.map((row, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-900">
+                  <span className="font-bold text-white">{row.tier}</span>
+                  <span className="text-slate-400">{row.trades} Plays</span>
+                  <span className="text-terminal-cyan font-semibold">{row.winRate}</span>
+                  <span className={`font-bold ${row.pnl?.startsWith('+') ? 'text-terminal-green' : 'text-slate-400'}`}>
+                    {row.pnl}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-slate-500 text-[11px]">
+              No confidence records logged yet.
+            </div>
+          )}
         </div>
       </div>
 
@@ -338,16 +375,7 @@ export function PerformancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-terminal-border/40">
-              {(agentAccuracy.length > 0 ? agentAccuracy : [
-                { agent_name: 'Central Bank Agent', signals_evaluated: 6, correct_signals: 5, accuracy_pct: 83.3, suggested_weight: 1.25, calibration_status: 'HIGH_EDGE' },
-                { agent_name: 'Fundamentals Agent', signals_evaluated: 6, correct_signals: 5, accuracy_pct: 83.3, suggested_weight: 1.25, calibration_status: 'HIGH_EDGE' },
-                { agent_name: 'Rates & Yield Agent', signals_evaluated: 6, correct_signals: 5, accuracy_pct: 83.3, suggested_weight: 1.25, calibration_status: 'HIGH_EDGE' },
-                { agent_name: 'Historical Reaction Agent', signals_evaluated: 6, correct_signals: 4, accuracy_pct: 66.7, suggested_weight: 1.00, calibration_status: 'BALANCED' },
-                { agent_name: 'Technical Structure Agent', signals_evaluated: 6, correct_signals: 4, accuracy_pct: 66.7, suggested_weight: 1.00, calibration_status: 'BALANCED' },
-                { agent_name: 'Geopolitical Agent', signals_evaluated: 6, correct_signals: 4, accuracy_pct: 66.7, suggested_weight: 1.00, calibration_status: 'BALANCED' },
-                { agent_name: 'Positioning Agent', signals_evaluated: 6, correct_signals: 3, accuracy_pct: 50.0, suggested_weight: 0.70, calibration_status: 'UNDERPERFORMING' },
-                { agent_name: 'Cross-Asset Agent', signals_evaluated: 6, correct_signals: 3, accuracy_pct: 50.0, suggested_weight: 0.70, calibration_status: 'UNDERPERFORMING' }
-              ]).map((agent, i) => (
+              {agentAccuracy.map((agent, i) => (
                 <tr key={i} className="hover:bg-slate-900/60 transition-colors">
                   <td className="py-2.5 px-3 font-bold text-white flex items-center gap-2">
                     <span className="text-slate-600">#{i + 1}</span>
@@ -357,19 +385,23 @@ export function PerformancePage() {
                   <td className="py-2.5 px-3 text-terminal-green font-semibold">{agent.correct_signals}</td>
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white tabular-nums">{agent.accuracy_pct}%</span>
-                      <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                        <div
-                          className={`h-full ${
-                            agent.accuracy_pct >= 75
-                              ? 'bg-terminal-green'
-                              : agent.accuracy_pct >= 60
-                              ? 'bg-terminal-cyan'
-                              : 'bg-terminal-red'
-                          }`}
-                          style={{ width: `${agent.accuracy_pct}%` }}
-                        ></div>
-                      </div>
+                      <span className="font-bold text-white tabular-nums">
+                        {agent.signals_evaluated > 0 ? `${agent.accuracy_pct}%` : 'Pending'}
+                      </span>
+                      {agent.signals_evaluated > 0 && (
+                        <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                          <div
+                            className={`h-full ${
+                              agent.accuracy_pct >= 75
+                                ? 'bg-terminal-green'
+                                : agent.accuracy_pct >= 60
+                                ? 'bg-terminal-cyan'
+                                : 'bg-terminal-red'
+                            }`}
+                            style={{ width: `${agent.accuracy_pct}%` }}
+                          ></div>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="py-2.5 px-3">
@@ -378,13 +410,13 @@ export function PerformancePage() {
                         ? 'bg-emerald-950 text-terminal-green border border-emerald-800'
                         : agent.calibration_status === 'BALANCED'
                         ? 'bg-cyan-950 text-terminal-cyan border border-cyan-800'
-                        : 'bg-rose-950 text-terminal-red border border-rose-800'
+                        : 'bg-slate-900 text-slate-400 border border-slate-700'
                     }`}>
-                      {agent.calibration_status}
+                      {agent.signals_evaluated > 0 ? agent.calibration_status : 'UNCALIBRATED'}
                     </span>
                   </td>
                   <td className="py-2.5 px-3 text-right font-bold tabular-nums text-white">
-                    {agent.suggested_weight.toFixed(2)}x
+                    {agent.suggested_weight ? `${agent.suggested_weight.toFixed(2)}x` : '1.00x'}
                   </td>
                 </tr>
               ))}
@@ -483,96 +515,48 @@ export function PerformancePage() {
           </div>
         </div>
 
-        {/* Backtest Result Display */}
+        {/* Backtest Simulation Results */}
         {backtestResult && (
-          <div className="mt-4 pt-4 border-t border-terminal-border font-mono text-xs space-y-4">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-              <div className="p-3 rounded bg-slate-950 border border-terminal-border">
-                <div className="text-[10px] text-slate-500 uppercase">Simulated Win Rate</div>
-                <div className="text-xl font-bold text-terminal-green mt-0.5">{backtestResult.winRatePct}%</div>
-                <div className="text-[10px] text-slate-400">{backtestResult.winningTrades}W / {backtestResult.losingTrades}L</div>
+          <div className="mt-6 pt-5 border-t border-terminal-border space-y-4 font-mono">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-bold text-white uppercase flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-terminal-green" />
+                <span>Simulation Complete ({backtestResult.totalTrades} Executions Evaluated)</span>
               </div>
-
-              <div className="p-3 rounded bg-slate-950 border border-terminal-border">
-                <div className="text-[10px] text-slate-500 uppercase">Profit Factor</div>
-                <div className="text-xl font-bold text-terminal-gold mt-0.5">{backtestResult.profitFactor}</div>
-                <div className="text-[10px] text-slate-400">Honest Fill Simulation</div>
-              </div>
-
-              <div className="p-3 rounded bg-slate-950 border border-terminal-border">
-                <div className="text-[10px] text-slate-500 uppercase">Net Profit ($)</div>
-                <div className="text-xl font-bold text-emerald-400 mt-0.5">+${backtestResult.netPnlUsd.toFixed(2)}</div>
-                <div className="text-[10px] text-emerald-500/80">+{backtestResult.returnPct}% Gain</div>
-              </div>
-
-              <div className="p-3 rounded bg-slate-950 border border-terminal-border">
-                <div className="text-[10px] text-slate-500 uppercase">Max Drawdown</div>
-                <div className="text-xl font-bold text-terminal-red mt-0.5">-{backtestResult.maxDrawdownPct}%</div>
-                <div className="text-[10px] text-rose-400/80">-${backtestResult.maxDrawdownUsd.toFixed(2)}</div>
-              </div>
-
-              <div className="p-3 rounded bg-slate-950 border border-terminal-border">
-                <div className="text-[10px] text-slate-500 uppercase">Sharpe Ratio</div>
-                <div className="text-xl font-bold text-terminal-cyan mt-0.5">{backtestResult.sharpeRatio}</div>
-                <div className="text-[10px] text-slate-400">Risk-Adjusted Return</div>
-              </div>
-
-              <div className="p-3 rounded bg-slate-950 border border-terminal-border">
-                <div className="text-[10px] text-slate-500 uppercase">Completed Trades</div>
-                <div className="text-xl font-bold text-white mt-0.5">{backtestResult.totalTrades}</div>
-                <div className="text-[10px] text-slate-400">{backtestResult.totalScratches} Scratches</div>
+              <div className="text-xs text-slate-400">
+                Preset: Fixed 1% Risk Sizing (Gold 100 oz/lot, JPY 100k/lot)
               </div>
             </div>
 
-            {/* Backtest Trade Log Table */}
-            <div>
-              <div className="text-xs font-bold text-white uppercase tracking-wider mb-2">
-                Simulated Historical Execution Log:
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+              <div className="p-3 bg-slate-950 rounded border border-terminal-border">
+                <div className="text-[10px] text-slate-500 uppercase">Simulated Win Rate</div>
+                <div className="text-xl font-bold text-terminal-green mt-1">{backtestResult.winRatePct}%</div>
+                <div className="text-[10px] text-slate-400">{backtestResult.winningTrades}W / {backtestResult.losingTrades}L</div>
               </div>
-              <div className="overflow-x-auto max-h-60 overflow-y-auto border border-terminal-border rounded-lg">
-                <table className="w-full text-left border-collapse text-[11px]">
-                  <thead className="bg-slate-950 sticky top-0 border-b border-terminal-border text-slate-400 text-[10px] uppercase">
-                    <tr>
-                      <th className="py-2 px-3">Event</th>
-                      <th className="py-2 px-3">Pair</th>
-                      <th className="py-2 px-3">Direction</th>
-                      <th className="py-2 px-3">Entry</th>
-                      <th className="py-2 px-3">Stop Loss</th>
-                      <th className="py-2 px-3">Take Profit</th>
-                      <th className="py-2 px-3">Outcome</th>
-                      <th className="py-2 px-3 text-right">PnL ($)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 bg-slate-950/40">
-                    {backtestResult.tradeLog?.map((t, idx) => (
-                      <tr key={idx} className="hover:bg-slate-900/60">
-                        <td className="py-2 px-3 text-slate-300 font-medium">{t.event_name}</td>
-                        <td className="py-2 px-3 text-white font-bold">{t.pair}</td>
-                        <td className="py-2 px-3">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                            t.direction === 'BUY' ? 'bg-emerald-950 text-terminal-green' : 'bg-rose-950 text-terminal-red'
-                          }`}>
-                            {t.direction}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3 text-slate-300 tabular-nums">{t.entryPrice.toFixed(2)}</td>
-                        <td className="py-2 px-3 text-terminal-red tabular-nums">{t.stopLoss.toFixed(2)}</td>
-                        <td className="py-2 px-3 text-terminal-green tabular-nums">{t.takeProfit.toFixed(2)}</td>
-                        <td className="py-2 px-3 font-bold">
-                          <span className={t.outcome === 'WIN' ? 'text-terminal-green' : 'text-terminal-red'}>
-                            {t.outcome}
-                          </span>
-                        </td>
-                        <td className={`py-2 px-3 text-right font-bold tabular-nums ${
-                          t.pnlUsd >= 0 ? 'text-terminal-green' : 'text-terminal-red'
-                        }`}>
-                          {t.pnlUsd >= 0 ? '+' : ''}${t.pnlUsd.toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+              <div className="p-3 bg-slate-950 rounded border border-terminal-border">
+                <div className="text-[10px] text-slate-500 uppercase">Simulated Return</div>
+                <div className="text-xl font-bold text-emerald-400 mt-1">+{backtestResult.returnPct}%</div>
+                <div className="text-[10px] text-slate-400">+${backtestResult.netProfitUsd} Net PnL</div>
+              </div>
+
+              <div className="p-3 bg-slate-950 rounded border border-terminal-border">
+                <div className="text-[10px] text-slate-500 uppercase">Profit Factor</div>
+                <div className="text-xl font-bold text-terminal-gold mt-1">{backtestResult.profitFactor}</div>
+                <div className="text-[10px] text-slate-400">Empirical Edge</div>
+              </div>
+
+              <div className="p-3 bg-slate-950 rounded border border-terminal-border">
+                <div className="text-[10px] text-slate-500 uppercase">Max Drawdown</div>
+                <div className="text-xl font-bold text-terminal-red mt-1">-{backtestResult.maxDrawdownPct}%</div>
+                <div className="text-[10px] text-slate-400">Peak to Trough</div>
+              </div>
+
+              <div className="p-3 bg-slate-950 rounded border border-terminal-border">
+                <div className="text-[10px] text-slate-500 uppercase">Sharpe Ratio</div>
+                <div className="text-xl font-bold text-terminal-cyan mt-1">{backtestResult.sharpeRatio}</div>
+                <div className="text-[10px] text-slate-400">Risk-Adjusted</div>
               </div>
             </div>
           </div>

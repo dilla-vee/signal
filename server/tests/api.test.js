@@ -42,20 +42,12 @@ describe('API Route Integration Tests', () => {
     assert.ok(json.data[0].release_time);
   });
 
-  test('GET /api/signals/latest returns pre-news signals with entry and take profit', async () => {
+  test('GET /api/signals/latest returns pre-news signals array without seed data', async () => {
     const res = await fetch(`http://localhost:${PORT}/api/signals/latest`);
     assert.equal(res.status, 200);
     const json = await res.json();
     assert.equal(json.success, true);
     assert.ok(Array.isArray(json.data));
-    assert.ok(json.data.length > 0);
-
-    const signal = json.data[0];
-    assert.ok(['BUY', 'SELL', 'NO_TRADE'].includes(signal.direction));
-    assert.ok(signal.suggested_entry !== undefined);
-    assert.ok(signal.stop_loss !== undefined);
-    assert.ok(signal.take_profit_1 !== undefined);
-    assert.ok(signal.risk_reward_ratio !== undefined);
   });
 
   test('POST /api/signals/calculate-trade returns computed parameters', async () => {
@@ -207,8 +199,8 @@ describe('API Route Integration Tests', () => {
     assert.equal(res.status, 200);
     const json = await res.json();
     assert.equal(json.success, true);
-    assert.ok(json.data.hitRatePct > 0);
-    assert.ok(json.data.profitFactor > 0);
+    assert.ok(json.data.hitRatePct !== undefined);
+    assert.ok(json.data.profitFactor !== undefined);
     assert.ok(Array.isArray(json.data.equityCurve));
     assert.ok(Array.isArray(json.data.pairStats));
   });

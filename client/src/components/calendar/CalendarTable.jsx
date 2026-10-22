@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Calendar, Filter, Clock, ArrowRight, RefreshCw } from 'lucide-react';
+import { Calendar, Filter, Clock, ArrowRight, RefreshCw, Database } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import { CountdownTimer } from '../common/CountdownTimer';
+import { TimeAgo } from '../common/TimeAgo';
 import { useAuth } from '../../context/AuthContext';
 
 export function CalendarTable({ events = [], onSelectEvent, onRefresh, loading }) {
@@ -32,16 +33,35 @@ export function CalendarTable({ events = [], onSelectEvent, onRefresh, loading }
     }
   }
 
+  const firstEvent = events[0];
+  const sourceName = firstEvent?.source_name || 'ForexFactory Live Feed';
+  const lastUpdated = firstEvent?.last_updated;
+  const isAnyStale = events.some(e => e.is_stale);
+  const isAnyDemo = events.some(e => e.is_demo);
+
   return (
     <div className="bg-terminal-surface border border-terminal-border rounded-lg overflow-hidden shadow-lg">
       {/* Table Header Controls */}
       <div className="p-4 border-b border-terminal-border flex flex-wrap items-center justify-between gap-3 bg-slate-950/40">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-terminal-cyan" />
-          <span className="font-mono text-sm font-bold text-white tracking-wide">Macro Economic Release Schedule</span>
-          <span className="text-xs font-mono text-slate-400">
-            ({filteredEvents.length} events in window)
-          </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-terminal-cyan" />
+            <span className="font-mono text-sm font-bold text-white tracking-wide">Macro Economic Release Schedule</span>
+            <span className="text-xs font-mono text-slate-400">
+              ({filteredEvents.length} events in window)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+            <span className="text-slate-600">|</span>
+            <TimeAgo
+              timestamp={lastUpdated}
+              refreshWindowSec={900}
+              sourceName={sourceName}
+              isStale={isAnyStale}
+              isDemo={isAnyDemo}
+            />
+          </div>
         </div>
 
         {/* Filters */}
@@ -106,13 +126,14 @@ export function CalendarTable({ events = [], onSelectEvent, onRefresh, loading }
               <th className="py-2.5 px-4">Countdown</th>
               <th className="py-2.5 px-3">Forecast</th>
               <th className="py-2.5 px-3">Previous</th>
+              <th className="py-2.5 px-3">Data Status</th>
               <th className="py-2.5 px-4 text-right">Pre-News Playbook</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-terminal-border">
             {filteredEvents.length === 0 ? (
               <tr>
-                <td colSpan="8" className="py-8 text-center text-slate-500">
+                <td colSpan="9" className="py-8 text-center text-slate-500">
                   No upcoming macro events match the selected filters.
                 </td>
               </tr>
@@ -149,6 +170,15 @@ export function CalendarTable({ events = [], onSelectEvent, onRefresh, loading }
                   </td>
                   <td className="py-3 px-3 text-slate-400 tabular-nums">
                     {ev.previous_val || '-'}
+                  </td>
+                  <td className="py-3 px-3">
+                    {ev.is_demo ? (
+                      <Badge variant="demo" size="xs">DEMO DATA</Badge>
+                    ) : ev.is_stale ? (
+                      <Badge variant="stale" size="xs">STALE</Badge>
+                    ) : (
+                      <span className="text-[10px] text-emerald-400 font-bold uppercase">● LIVE</span>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-right">
                     <button
